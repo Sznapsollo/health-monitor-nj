@@ -1,0 +1,412 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Sznapsollo/health-monitor-nj/schema/hm-protocol-v1.json",
+  "$defs": {
+    "Alert": {
+      "properties": {
+        "v": {
+          "type": "integer",
+          "enum": [
+            1
+          ],
+          "description": "Protocol version; always 1"
+        },
+        "t": {
+          "type": "string",
+          "enum": [
+            "alert"
+          ],
+          "description": "Envelope type"
+        },
+        "platform": {
+          "type": "string",
+          "description": "Platform this packet belongs to; resolved from the listener or sender IP when absent"
+        },
+        "source": {
+          "type": "string",
+          "description": "Host or instance name of the sender"
+        },
+        "ts": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Event time; server time is used when absent"
+        },
+        "auth": {
+          "type": "string",
+          "description": "Optional shared token; unused today but reserved so senders need no rewrite later"
+        },
+        "signal": {
+          "type": "string",
+          "description": "Alert stream name; defaults to alerts"
+        },
+        "level": {
+          "type": "string",
+          "enum": [
+            "ERROR",
+            "WARN",
+            "INFO",
+            "DEBUG",
+            "TRACE"
+          ]
+        },
+        "category": {
+          "type": "string",
+          "description": "Grouping label chosen by the platform"
+        },
+        "message": {
+          "type": "string"
+        },
+        "groupKey": {
+          "type": "string",
+          "description": "Repeats sharing this key within one minute collapse into a single entry"
+        },
+        "data": {
+          "type": "object"
+        }
+      },
+      "type": "object",
+      "required": [
+        "v",
+        "t",
+        "level",
+        "message"
+      ],
+      "description": "Alert is a condition a human may need to look at."
+    },
+    "Chunk": {
+      "properties": {
+        "v": {
+          "type": "integer",
+          "enum": [
+            1
+          ],
+          "description": "Protocol version; always 1"
+        },
+        "t": {
+          "type": "string",
+          "enum": [
+            "chunk"
+          ],
+          "description": "Envelope type"
+        },
+        "platform": {
+          "type": "string",
+          "description": "Platform this packet belongs to; resolved from the listener or sender IP when absent"
+        },
+        "source": {
+          "type": "string",
+          "description": "Host or instance name of the sender"
+        },
+        "ts": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Event time; server time is used when absent"
+        },
+        "auth": {
+          "type": "string",
+          "description": "Optional shared token; unused today but reserved so senders need no rewrite later"
+        },
+        "id": {
+          "type": "string"
+        },
+        "part": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "of": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "data": {
+          "type": "string",
+          "description": "Slice of the UTF-8 JSON payload"
+        }
+      },
+      "type": "object",
+      "required": [
+        "v",
+        "t",
+        "id",
+        "part",
+        "of",
+        "data"
+      ],
+      "description": "Chunk carries one part of a payload too large for a single datagram."
+    },
+    "Gauge": {
+      "properties": {
+        "v": {
+          "type": "integer",
+          "enum": [
+            1
+          ],
+          "description": "Protocol version; always 1"
+        },
+        "t": {
+          "type": "string",
+          "enum": [
+            "gauge"
+          ],
+          "description": "Envelope type"
+        },
+        "platform": {
+          "type": "string",
+          "description": "Platform this packet belongs to; resolved from the listener or sender IP when absent"
+        },
+        "source": {
+          "type": "string",
+          "description": "Host or instance name of the sender"
+        },
+        "ts": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Event time; server time is used when absent"
+        },
+        "auth": {
+          "type": "string",
+          "description": "Optional shared token; unused today but reserved so senders need no rewrite later"
+        },
+        "signal": {
+          "type": "string"
+        },
+        "points": {
+          "items": {
+            "$ref": "#/$defs/GaugePoint"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object",
+      "required": [
+        "v",
+        "t",
+        "signal",
+        "points"
+      ],
+      "description": "Gauge is the latest set of labelled values reported by one source."
+    },
+    "GaugePoint": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "number"
+        },
+        "warn": {
+          "type": "boolean"
+        },
+        "unit": {
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "required": [
+        "label",
+        "value"
+      ],
+      "description": "GaugePoint is one labelled reading of a gauge."
+    },
+    "Log": {
+      "properties": {
+        "v": {
+          "type": "integer",
+          "enum": [
+            1
+          ],
+          "description": "Protocol version; always 1"
+        },
+        "t": {
+          "type": "string",
+          "enum": [
+            "log"
+          ],
+          "description": "Envelope type"
+        },
+        "platform": {
+          "type": "string",
+          "description": "Platform this packet belongs to; resolved from the listener or sender IP when absent"
+        },
+        "source": {
+          "type": "string",
+          "description": "Host or instance name of the sender"
+        },
+        "ts": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Event time; server time is used when absent"
+        },
+        "auth": {
+          "type": "string",
+          "description": "Optional shared token; unused today but reserved so senders need no rewrite later"
+        },
+        "signal": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string",
+          "description": "Optional grouping key; for example a day bucket or a recipient"
+        },
+        "level": {
+          "type": "string",
+          "enum": [
+            "ERROR",
+            "WARN",
+            "INFO",
+            "DEBUG",
+            "TRACE"
+          ]
+        },
+        "data": {
+          "type": "object"
+        }
+      },
+      "type": "object",
+      "required": [
+        "v",
+        "t",
+        "signal"
+      ],
+      "description": "Log is one searchable row."
+    },
+    "Metric": {
+      "properties": {
+        "v": {
+          "type": "integer",
+          "enum": [
+            1
+          ],
+          "description": "Protocol version; always 1"
+        },
+        "t": {
+          "type": "string",
+          "enum": [
+            "metric"
+          ],
+          "description": "Envelope type"
+        },
+        "platform": {
+          "type": "string",
+          "description": "Platform this packet belongs to; resolved from the listener or sender IP when absent"
+        },
+        "source": {
+          "type": "string",
+          "description": "Host or instance name of the sender"
+        },
+        "ts": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Event time; server time is used when absent"
+        },
+        "auth": {
+          "type": "string",
+          "description": "Optional shared token; unused today but reserved so senders need no rewrite later"
+        },
+        "signal": {
+          "type": "string",
+          "description": "Signal name; for example requests or jobs"
+        },
+        "dims": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object",
+          "description": "Dimension values to group by"
+        },
+        "values": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "type": "object",
+          "description": "Numeric values; count defaults to 1 when absent"
+        }
+      },
+      "type": "object",
+      "required": [
+        "v",
+        "t",
+        "signal"
+      ],
+      "description": "Metric is one observation folded into a per-minute cube: dimensions to group by and numeric values to aggregate."
+    },
+    "Status": {
+      "properties": {
+        "v": {
+          "type": "integer",
+          "enum": [
+            1
+          ],
+          "description": "Protocol version; always 1"
+        },
+        "t": {
+          "type": "string",
+          "enum": [
+            "status"
+          ],
+          "description": "Envelope type"
+        },
+        "platform": {
+          "type": "string",
+          "description": "Platform this packet belongs to; resolved from the listener or sender IP when absent"
+        },
+        "source": {
+          "type": "string",
+          "description": "Host or instance name of the sender"
+        },
+        "ts": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Event time; server time is used when absent"
+        },
+        "auth": {
+          "type": "string",
+          "description": "Optional shared token; unused today but reserved so senders need no rewrite later"
+        },
+        "signal": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string",
+          "description": "Identity of the reporting entity; for example a server name"
+        },
+        "payload": {
+          "type": "object"
+        },
+        "content": {
+          "type": "object",
+          "description": "The whole report to keep when the signal is an info signal"
+        }
+      },
+      "type": "object",
+      "required": [
+        "v",
+        "t",
+        "signal",
+        "key"
+      ],
+      "description": "Status is the current state of one keyed entity, refreshed by a heartbeat."
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/Metric"
+    },
+    {
+      "$ref": "#/$defs/Gauge"
+    },
+    {
+      "$ref": "#/$defs/Status"
+    },
+    {
+      "$ref": "#/$defs/Alert"
+    },
+    {
+      "$ref": "#/$defs/Log"
+    },
+    {
+      "$ref": "#/$defs/Chunk"
+    }
+  ],
+  "title": "healthMonitorNJ wire protocol v1",
+  "description": "One JSON object per UDP datagram, or an array of them for batching."
+}

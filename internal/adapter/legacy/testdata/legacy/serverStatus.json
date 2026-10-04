@@ -1,0 +1,5 @@
+{"type":"configServerLegacyListStatus","start":"2026-09-19T10:11:12.123+0200","executionTime":0,
+ "legacyMessage":"","legacyLevel":"DEBUG","serverName":"prod-1","port":"8080","user":"unknown",
+ "account":"unknown","accountName":"unknown","legacyGroupKey":"",
+ "startDate":"2026-09-19T10:11:12.123+0200","branch":"master","build":"abc1234",
+ "serverConfig":{"host":"prod-1","port":"","branch":"master","build":"abc1234"}}

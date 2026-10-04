@@ -1,0 +1,20 @@
+/bin/
+/data/
+/config.yaml
+web/node_modules/
+web/dist/*
+!web/dist/.gitkeep
+web/coverage/
+*.test
+.DS_Store
+platforms/*/dashboards/
+platforms/*/signals/
+.env
+.workItems/
+platforms/*/mapping.yaml
+/soak
+/hm
+
+# Image exports for copying to a server (docker save)
+/hm-*.tar.gz
+/docker-compose.override.yml

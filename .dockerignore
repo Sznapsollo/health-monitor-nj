@@ -1,0 +1,14 @@
+.git
+.github
+.workItems
+bin
+data
+docs
+deploy
+web/node_modules
+web/dist
+**/*_test.go
+platforms/*/dashboards
+platforms/*/signals
+.env
+Selection_*.png

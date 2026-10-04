@@ -1,0 +1,40 @@
+# How the panels are arranged. Edit and save: it is picked up within a second,
+# no restart. Columns sit side by side, panels stack inside a column, and
+# `width` is relative — 2 and 1 means two thirds and one third.
+platform: example
+
+dashboards:
+  ops:
+    name: "Operacje"
+    default: true
+    columns:
+      - width: 2
+        panels:
+          - type: gauge
+            signal: jobQueuesLoad
+            height: 200
+          - type: chart
+            signal: requests
+            group: url
+            top: 5
+            height: 260
+      - width: 1
+        panels:
+          - type: alerts
+            levels: [ERROR, WARN]
+            limit: 20
+          - type: status
+
+  jobs:
+    name: "Kolejki i zadania"
+    columns:
+      - width: 1
+        panels:
+          - type: gauge
+            signal: jobQueuesLoad
+            height: 260
+          - type: chart
+            signal: jobs
+            group: jobName
+            top: 8
+            height: 300

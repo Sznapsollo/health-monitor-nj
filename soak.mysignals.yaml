@@ -1,0 +1,60 @@
+# Four invented signals for trying the signal designer, and nothing else:
+#   make soak SOAK_CONFIG=soak.mysignals.yaml
+# They arrive undefined. Define them on the Signals tab (or as files under
+# platforms/example/signals/, see README "Your own signals, step by step").
+platform: example        # platform the packets are labelled with
+protocol: v1               # custom signals are always v1; this only matters for the sections not used here
+duration: 0s               # how long to run, e.g. 30m; 0s runs until Ctrl-C
+
+servers:                   # the packets' senders
+  count: 2                 # a metric spreads over them; a gauge always reports from the first
+  namePrefix: shop-        # sender names shop-1, shop-2
+
+signals:
+  # A chart: counts per minute with a latency line, groupable by region and url.
+  - name: checkout
+    type: metric
+    rate: 600                                   # packets per minute
+    dims: { url: 40, region: [eu, us, asia] }   # url-1 … url-40, and three fixed regions
+    values: { ms: [5, 800], count: [1, 3] }     # latency 5–800 ms; each packet counts 1–3
+
+  # Bars: the latest free space per volume, redrawn with each report.
+  - name: diskFree
+    type: gauge
+    rate: 2                                     # reports per minute
+    dims: { volume: [data, logs, backups] }     # one bar per volume
+    values: { gb: [0, 500] }                    # each bar drifts between 0 and 500
+
+  # Bars: the latest traffic per VPN user.
+  - name: vpnUsersLoad
+    type: gauge
+    rate: 1                                     # one report a minute
+    dims: { user: 25 }                          # user-1 … user-25, one bar each
+    values: { mb: [0, 2000] }                   # each bar drifts between 0 and 2000
+
+  # Searchable rows: one per login attempt, found on the Search tab by user or
+  # by text ("locked"). Define it on the Signals tab to give it its own days.
+  - name: loginLogs
+    type: log
+    rate: 60                                    # log rows per minute
+    dims: { user: 30, result: [ok, failed, locked] }  # user-1 … user-30; each row says how it went
+
+  # Info, merged: which shop modules are up and when each last checked in.
+  # Mostly full lists; about one report in three is one module alone, with
+  # its config, which merging keeps. The example platform defines shopModules (merge: true).
+  - name: shopModules
+    type: info
+    packetType: shopModulesReport               # the legacy "type" the info signal names
+    rate: 1                                     # reports per minute
+    partial: true                               # about one report in three carries one module only
+    dims: { module: [cart, search, payments, auth, mail] }  # the entries of each report
+    values: { queue: [0, 50] }                  # drawn for each entry
+
+  # Info, kept whole: the shop's feature rollout, each report kept as it came
+  # (the newest 20). The example platform defines shopRelease (no merge).
+  - name: shopRelease
+    type: info
+    packetType: shopReleaseReport
+    rate: 1
+    dims: { feature: [newCheckout, darkMode, betaSearch] }
+    values: { rollout: [0, 100] }

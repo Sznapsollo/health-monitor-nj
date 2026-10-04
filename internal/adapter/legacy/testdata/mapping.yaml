@@ -1,0 +1,19 @@
+# Translates what legacy senders put in their v0 packets into
+# the monitor's native names, before the packet is read. Anything not listed
+# is read as it is. Changes take effect without a restart.
+
+types:                               # value of the packet's "type" field → native type
+  legacyRequest: request
+  legacyCustomWarning: customWarning
+  legacyCustomLog: customLog
+  configServerLegacyListStatus: configServerListStatus
+
+fields:                              # field name in the packet → native field name
+  legacyLevel: level
+  legacyMessage: message
+  legacyGroupKey: groupKey
+  legacyOrigin: origin
+
+origins:                             # origin field's value → word shown after the level in an alert's category
+  job: JOB
+  default: WEB                       # any other origin, including none

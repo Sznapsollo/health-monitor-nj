@@ -1,0 +1,72 @@
+# healthMonitorNJ configuration. Every key has a default, so this file is
+# optional; anything here can be overridden with an HM_* environment variable
+# (see the table in README.md). Keep secrets out of the repo: pass HM_PASS instead.
+
+# Default ports: 8081 dashboard, 8082 intake, 8083 for pprof.
+server:
+  http_addr: ":8081"       # dashboard + API (HM_HTTP_ADDR)
+  udp_addr: ":8082"        # packet intake (HM_UDP_ADDR)
+  admin_addr: "127.0.0.1:8083"  # pprof only; never expose it (HM_ADMIN_ADDR)
+  # Browser origins allowed to open a WebSocket. Empty means same-origin only,
+  # which is what production uses; add the Vite dev server for local work.
+  allowed_origins: []
+
+state:
+  # Memory guard: past this, the oldest dimension breakdowns are dropped
+  # (oldest first). Minute totals are never evicted and SQLite keeps
+  # everything, so only the fast path shrinks. 0 = automatic: sized to fit the
+  # container's memory limit (~155 MB for 512 MB), or 512 MB without one.
+  # -1 switches it off.
+  max_hot_mb: 0
+
+hub:
+  broadcast_delay: 4s      # how long changes are collected before viewers are updated
+
+log:
+  level: info              # debug | info | warn | error (HM_LOG_LEVEL)
+  format: json             # json | text (HM_LOG_FORMAT)
+
+auth:
+  # Dashboard password; prefer HM_PASS. The server refuses to start without one
+  # unless open is true (HM_OPEN=1), which is only right for development.
+  password: ""
+  open: false
+
+intake:
+  readers: 0               # 0 = one socket+goroutine per CPU, up to 8 (HM_INTAKE_READERS)
+  default_platform: "example"  # labels packets that name no platform (HM_DEFAULT_PLATFORM)
+  daily_logs: true         # one searchable row per request;
+                           # turn off for a high-volume platform and keep only the charts
+  drop_older_than: 0s      # reject packets whose own timestamp is older than this; 0 accepts any
+  drop_newer_than: 2m      # reject packets stamped further ahead than this (sender clock wrong); 0 accepts any
+  read_buffer_bytes: 8388608   # SO_RCVBUF; needs a matching net.core.rmem_max
+  max_packet_bytes: 16384      # larger datagrams are cut short by the kernel, dropped and counted as truncated; chunk big messages
+
+data:
+  dir: "/data"             # SQLite and backups (HM_DATA_DIR)
+  flush_every: 1s          # how long a log row or an alert waits before it is durable
+  aggregate_flush_every: 15s  # chart data: each minute is written when it closes, the one in progress this often
+  log_keep_days: 14        # a day of one kind of log is one table, dropped whole
+  # Per kind, for the ones not worth keeping as long as the rest. dailyLogs is
+  # one row per request, so it is by far the bulkiest: kept 2 days here,
+  # everything else 14.
+  log_keep_days_by_kind:
+    dailyLogs: 2
+  # A day past log_keep_days is moved to dir/archive as a gzip file (about a
+  # tenth of its size in the database), deleted this many days after the file
+  # was written. Download or delete them on the Storage tab. 0 drops old days
+  # instead.
+  log_archive_keep_days: 10
+  # log_archive_keep_days_by_kind:
+  #   sendLogs: 10
+  alert_keep_days: 10      # how long past alerts can be looked at; the live
+                           # window in memory is separate and much shorter
+  alert_archive_keep_days: 10  # then each day is dir/archive/alerts-<day>.ndjson.gz,
+                               # deleted this many days after it was written;
+                               # 0 deletes old alerts instead
+  min_free_gb: 10          # alert when the disk under the database or archive has less free space
+  viewer_history_keep_days: 30  # who had the monitor open (Status tab); 0 keeps it forever
+  backup_dir: ""           # where Storage → Back up the database writes; empty = next to the database (dir);
+                           # "/data/archive" puts backups with the archive files (HM_BACKUP_DIR)
+  activity_keep_days: 31   # per-user minutes of activity
+  platforms_dir: "/data/platforms"  # catalogues, dashboards, rules; hot-reloaded

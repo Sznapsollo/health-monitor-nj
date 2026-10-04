@@ -1,0 +1,32 @@
+# Two signals for trying the signal designer, and nothing else:
+#   make soak SOAK_CONFIG=soak.designer.yaml
+# Both arrive undefined. Open the Signals tab, press Define, save, and they chart.
+# No requests, alerts, logs, queues or heartbeats: those sections are absent.
+platform: example
+protocol: v1
+duration: 0s
+
+servers:                   # the packets' source names
+  count: 5
+  namePrefix: soak-
+
+signals:
+  # A chart like Requests: counts per minute with a latency line, to be grouped
+  # by port, then by account (a stacked bar per port per minute). accountName
+  # travels with each account; set "Values named by" on account to show it.
+  - name: apiCalls
+    type: metric
+    rate: 1200
+    dims:
+      port: ["8080", "8081", "8082", "8083", "8084"]
+      account: 300
+      accountName: { names: account }   # account-17 is always "Soak Account 17"
+      url: 20
+    values: { count: [1, 1], ms: [5, 900] }
+
+  # Bars like the queue loads: the latest usage per VPN user, redrawn each report.
+  - name: vpnUsage
+    type: gauge
+    rate: 1
+    dims: { user: 25 }
+    values: { mb: [0, 2000] }

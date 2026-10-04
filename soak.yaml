@@ -1,0 +1,166 @@
+# Everything a soak run sends. cmd/soak has no built-in values: what is not
+# here is not sent, and an unknown key is an error.
+#   make soak                                  # this file
+#   make soak SOAK_CONFIG=soak.designer.yaml   # another one
+
+platform: example        # platform named in v1 packets; v0 packets are resolved by the monitor
+protocol: v0               # v0 = legacy packets with native names (see platforms/<platform>/mapping.yaml), v1 = envelopes; signals: below are always v1
+duration: 0s               # how long to run, e.g. 2h; 0s runs until Ctrl-C
+
+servers:                   # virtual app servers; they send requests and heartbeats and are the source of every packet
+  count: 5                 # how many servers
+  namePrefix: soak-        # serverName is this plus a number: soak-1 … soak-5
+  firstPort: 8080          # the first server's port field, then +1 each (8080 … 8084): the "port" dimension
+
+requests:                  # v0 "request" / v1 metric "requests", one stream per server; absent or 0 = none
+  perServerPerMinute: 5000 # requests each server sends per minute
+  urls: 40                 # distinct urls (/api/offers/list, …)
+  urlSkew: 2               # how unevenly urls are used; see accountSkew
+  accounts: 2000           # distinct accounts; also the ones alerts and sent-mail logs name
+  accountSkew: 2           # how unevenly accounts are used: 1 = evenly, 2 = a few busier,
+                           # 4 = a few dominate, 6 = a handful carry most of it.
+                           # The busiest 1 % of accounts carry about (0.01)^(1/skew) of the traffic:
+                           # 1 → 1 %, 2 → 10 %, 3 → 22 %, 4 → 32 %, 6 → 46 %
+  usersPerAccount: 3       # distinct users within each account
+  fastMs: [5, 400]         # latency range of an ordinary request, weighted towards the low end
+  slowMs: [1200, 5000]     # latency range of a slow request; above the 1000 ms default, so these alert
+  slowShare: 0.001         # fraction of requests that are slow (0.001 = 0.1 %)
+
+alerts:                    # v0 "customWarning" / v1 alert "alerts"; absent or 0 = none
+  perMinute: 15            # alerts per minute across all servers
+  levels: { ERROR: 2, WARN: 3, INFO: 5 }  # relative weights of each level; also used by custom alert signals
+  uniqueShare: 0.3         # fraction given a reference number, so they do not fold into a group
+  groupKeyShare: 0.15      # fraction carrying groupKey soak/group-N, which folds by key despite the reference number
+  groupKeys: 3             # how many distinct group keys (soak/group-1 … soak/group-3)
+  messages:                # alert texts; earlier entries are picked far more often
+    - Payment gateway timeout
+    - Could not generate invoice PDF
+    - Mail server refused connection
+    - Session store unavailable
+    - Order import failed for supplier feed
+    - Retrying message after consumer error
+    - Stock level below reorder point
+    - Slow query on reports table
+    - "Upload rejected: file too large"
+    - Scheduled export finished with warnings
+    - Cache rebuild took longer than expected
+    - Duplicate submission ignored
+
+queues:                    # jobQueuesLoad / v1 gauge "jobQueuesLoad"; absent or count 0 = none
+  count: 15               # queues in each report (soak.queue.001 …)
+  sources: 1               # job servers reporting them (soak-jobs, or soak-jobs-1 … when more than one)
+  every: 5s                # how often each source reports
+  max: 5000                # highest load a queue reaches; loads drift, mostly low
+  warnAbove: 1000          # a queue above this is flagged as a warning; 0 = never
+
+sendLogs:                  # v0 "customLog" sendLogs / v1 log "sendLogs", found in Search; absent or 0 = none
+  perMinute: 15            # sent-mail log rows per minute
+  mails:                   # mail kinds: emailType and subject; earlier entries are picked far more often
+    - { type: orderConfirmation, subject: Order confirmation }
+    - { type: passwordReset, subject: Password reset }
+    - { type: newApplication, subject: New application received }
+    - { type: invoice, subject: Your invoice is ready }
+    - { type: weeklyDigest, subject: Weekly digest }
+
+heartbeats:                # v0 "configServerListStatus" / v1 status "servers", one per server; keeps them online
+  every: 30s               # how often each server reports; 0s sends none
+  flap: false              # true: one server now and then stops reporting, to exercise offline and recovery
+  flapEvery: 20m           # with flap: time between one server going quiet and the next
+  flapDown: 7m             # with flap: how long it stays quiet; longer than the 5 min offline default
+
+# Invented v1 signals, e.g. for the signal designer. Each entry:
+#   name      signal name as the monitor sees it
+#   type      metric, gauge, status, log, alert or info:
+#               metric  events to count and time: a chart per minute (Charts tab, dashboards)
+#               gauge   current values that replace the last ones: bars (Charts tab, dashboards)
+#               status  "I am alive" from each key: an up/down row on the Status tab,
+#                       and an offline alert when it goes quiet
+#               log     one searchable row per packet (Search tab), kept a day per table
+#               alert   a message with a level (Alerts tab)
+#               info    a whole report, kept as it came (Info tab), its sender also on Status
+#   packetType  info only: the legacy "type" the report is sent with (always v0)
+#   partial   info only: about one report in three carries one entry, with its config
+#   rate      packets per minute
+#   platform  optional; defaults to platform: above
+#   dims      each a count (url: 40 → url-1 … url-40), a list of values, or
+#             { names: account } for a name that always goes with that value;
+#             a gauge labels its points with the first one, a status and a
+#             log use its value as their key, an alert names it in the message
+#             an info report lists every value of the first one
+#   values    each a [min, max] range; whole ends give whole numbers;
+#             a gauge uses the first range for its drifting values
+# signals: []
+#  - name: checkout
+#    type: metric
+#    rate: 600
+#    dims: { url: 40, region: [eu, us, asia] }
+#    values: { ms: [5, 800], count: [1, 3] }
+#  - name: diskFree
+#    type: gauge
+#    rate: 2
+#    dims: { volume: [data, logs, backups] }
+#    values: { gb: [0, 500] }
+#  - name: vpnUsersLoad            # not shipped: define it in the designer to chart it
+#    type: gauge
+#    rate: 1
+#    dims: { user: 25 }
+#    values: { mb: [0, 2000] }
+
+# examples
+# or run your own by make soak SOAK_CONFIG=soak.mysignals.yaml
+signals:
+  # A chart: counts per minute with a latency line, groupable by region and url.
+  - name: checkout
+    type: metric
+    rate: 600                                   # packets per minute
+    dims: { url: 40, region: [eu, us, asia] }   # url-1 … url-40, and three fixed regions
+    values: { ms: [5, 800], count: [1, 3] }     # latency 5–800 ms; each packet counts 1–3
+
+  # Bars: the latest free space per volume, redrawn with each report.
+  - name: diskFree
+    type: gauge
+    rate: 10                                    # reports per minute
+    dims: { volume: [data, logs, backups] }     # one bar per volume
+    values: { gb: [0, 500] }                    # each bar drifts between 0 and 500
+
+  # Bars: the latest traffic per VPN user.
+  - name: vpnUsersLoad
+    type: gauge
+    rate: 10                                    # reports per minute
+    dims: { user: 25 }                          # user-1 … user-25, one bar each
+    values: { mb: [0, 2000] }                   # each bar drifts between 0 and 2000
+
+  # Rows to search: one per login attempt, saying who tried and how it went.
+  - name: loginLogs
+    type: log
+    rate: 60                                    # log rows per minute
+    dims: { user: 30, result: [ok, failed, locked] }  # user-1 … user-30; each row says how it went
+
+  # Up/down rows: three payment gateways say they are alive, each in turn.
+  # Each is a row on the Status tab; stop soak and after 5 minutes they go
+  # down with an offline alert, and recover when it runs again.
+  - name: gateways
+    type: status
+    rate: 6                                     # reports per minute, the gateways in turn: each every 30 s
+    dims: { gateway: [payu, stripe, przelewy24] }  # the keys: one Status row each
+    values: { latencyMs: [20, 300] }            # shown with the row
+
+  # Info, merged: which shop modules are up and when each last checked in.
+  # Mostly full lists; about one report in three is one module alone, with
+  # its config, which merging keeps. The example platform defines shopModules (merge: true).
+  - name: shopModules
+    type: info
+    packetType: shopModulesReport               # the legacy "type" the info signal names
+    rate: 1                                     # reports per minute
+    partial: true                               # about one report in three carries one module only
+    dims: { module: [cart, search, payments, auth, mail] }  # the entries of each report
+    values: { queue: [0, 50] }                  # drawn for each entry
+
+  # Info, kept whole: the shop's feature rollout, each report kept as it came
+  # (the newest 20). The example platform defines shopRelease (no merge).
+  - name: shopRelease
+    type: info
+    packetType: shopReleaseReport
+    rate: 1
+    dims: { feature: [newCheckout, darkMode, betaSearch] }
+    values: { rollout: [0, 100] }

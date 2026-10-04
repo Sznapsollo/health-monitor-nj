@@ -1,0 +1,56 @@
+platform: example
+protocol: v0
+duration: 0s
+servers:
+  count: 5
+  namePrefix: soak-
+  firstPort: 8080
+requests:
+  perServerPerMinute: 5000
+  urls: 40
+  urlSkew: 2
+  accounts: 6000
+  accountSkew: 2
+  usersPerAccount: 3
+  fastMs: [5, 400]
+  slowMs: [1200, 5000]
+  slowShare: 0.001
+alerts:
+  perMinute: 15
+  levels: { ERROR: 2, WARN: 3, INFO: 5 }
+  uniqueShare: 0.3
+  groupKeyShare: 0.15
+  groupKeys: 3
+  messages:
+    - Payment gateway timeout
+    - Could not generate invoice PDF
+    - Mail server refused connection
+    - Session store unavailable
+    - Order import failed for supplier feed
+    - Retrying message after consumer error
+    - Stock level below reorder point
+    - Slow query on reports table
+    - "Upload rejected: file too large"
+    - Scheduled export finished with warnings
+    - Cache rebuild took longer than expected
+    - Duplicate submission ignored
+queues:
+  count: 200
+  sources: 1
+  every: 1m
+  max: 5000
+  warnAbove: 1000
+sendLogs:
+  perMinute: 15
+  mails:
+    - { type: orderConfirmation, subject: Order confirmation }
+    - { type: passwordReset, subject: Password reset }
+    - { type: newApplication, subject: New application received }
+    - { type: invoice, subject: Your invoice is ready }
+    - { type: weeklyDigest, subject: Weekly digest }
+heartbeats:
+  every: 30s
+  flap: false
+  flapEvery: 20m
+  flapDown: 7m
+signals: []

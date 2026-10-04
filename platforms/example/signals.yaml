@@ -1,0 +1,193 @@
+# The example platform's shipped signals, read-only in the UI.
+#
+# Each entry has exactly the fields and layout the signal designer writes to
+# platforms/<platform>/signals/<name>.yaml, so any of them can be recreated
+# there under another name. Above each: the packet it reads, and the
+# soak.yaml `signals:` entry that sends the same shape of traffic.
+# Hot-reloaded: an edit takes effect within a second.
+platform: example
+
+signals:
+  # One row per handled HTTP request.
+  #
+  # Packet (protocol v1):
+  #   {"v":1,"t":"metric","platform":"example","signal":"requests","source":"app-1",
+  #    "dims":{"account":"100042","accountName":"Acme","url":"/api/orders","port":"8080",
+  #            "user":"anna@acme.test","ipAddress":"10.0.0.7","serverName":"app-1"},
+  #    "values":{"count":1,"ms":142}}
+  # Legacy senders send a flat `request` packet instead (see mapping.yaml);
+  # the adapter turns it into exactly this.
+  #
+  # The same traffic from soak.yaml (soak sends the legacy form itself through
+  # its `requests:` section; this is the v1 equivalent):
+  #   - name: requests
+  #     type: metric
+  #     rate: 25000
+  #     dims: { port: ["8080","8081","8082","8083","8084"], url: 40, account: 2000,
+  #             accountName: 2000, user: 6000, ipAddress: 2000,
+  #             serverName: [soak-1, soak-2, soak-3, soak-4, soak-5] }
+  #     values: { count: [1, 1], ms: [5, 400] }
+  requests:
+    kind: timeseries
+    input:
+      dims: [account, accountName, url, port, user, ipAddress, serverName]
+      values: { count: count, ms: ms }
+    retention:
+      hot_detail_minutes: 120    # every value of every minute kept in memory
+      hot_totals_minutes: 2880   # the minute totals kept in memory (48 h)
+      durable_days: 30           # how long anything of it stays in the database
+      detail_days: 3             # per-value rows per minute; after that, per hour
+    max_keys: 10000              # values per dimension per minute; more go to "other"
+    keep_pairs:                  # stored always, so these splits have history
+      - [port, account]
+      - [serverName, url]
+    display:
+      name: Requests
+      dims:
+        account: Account
+        accountName: Account name
+        url: URL
+        port: Port
+        user: User
+        ipAddress: IP address
+        serverName: Server
+      labels:                    # values of account are shown by their accountName
+        account: accountName
+    views:
+      - id: all
+        type: minuteSeries
+        value: count
+        style: column
+        default_on: true
+        options:
+          secondaryStyle: line
+          secondaryValue: avgMs
+      - id: byGroup
+        type: minuteSeriesPerGroup
+        value: count
+        style: column
+        top: 50
+        default_on: true
+        options:
+          secondaryStyle: line
+          secondaryValue: avgMs
+
+  # One row per consumed queue message; `count` is how many items it carried.
+  #
+  # Packet (protocol v1):
+  #   {"v":1,"t":"metric","platform":"example","signal":"jobs","source":"jobs-1",
+  #    "dims":{"jobName":"queue - SEND_MAIL","account":"100042","accountName":"Acme"},
+  #    "values":{"count":3,"ms":88}}
+  # Legacy senders send a flat `jobReport` packet with `itemsCount`.
+  #
+  # The same traffic from soak.yaml:
+  #   - name: jobs
+  #     type: metric
+  #     rate: 600
+  #     dims: { jobName: 12, account: 2000, accountName: 2000 }
+  #     values: { count: [1, 20], ms: [5, 2000] }
+  jobs:
+    kind: timeseries
+    input:
+      dims: [jobName, account, accountName]
+      values: { count: count, ms: ms }
+    retention:
+      hot_detail_minutes: 120
+      hot_totals_minutes: 2880
+      durable_days: 30
+      detail_days: 3
+    max_keys: 5000
+    keep_pairs:
+      - [jobName, account]
+    display:
+      name: Jobs
+      dims:
+        jobName: Job
+        account: Account
+        accountName: Account name
+      labels:
+        account: accountName
+    views:
+      - id: all
+        type: minuteSeries
+        value: count
+        style: column
+        default_on: true
+        options:
+          secondaryStyle: line
+          secondaryValue: avgMs
+      - id: byGroup
+        type: minuteSeriesPerGroup
+        value: count
+        style: column
+        top: 50
+        default_on: true
+        options:
+          secondaryStyle: line
+          secondaryValue: avgMs
+
+  # The latest load of each queue, one bar per queue. Gauges keep only the
+  # current values in memory and are not stored per minute.
+  #
+  # Packet (protocol v1):
+  #   {"v":1,"t":"gauge","platform":"example","signal":"jobQueuesLoad","source":"jobs-1",
+  #    "points":[{"label":"mail","value":12},{"label":"invoices","value":3,"warn":true}]}
+  # Legacy senders send a flat `jobQueuesLoad` packet with `queueLoads`.
+  #
+  # The same traffic from soak.yaml (its `queues:` section sends the legacy
+  # form; this is the v1 equivalent):
+  #   - name: jobQueuesLoad
+  #     type: gauge
+  #     rate: 1
+  #     dims: { queue: 15 }
+  #     values: { load: [0, 5000] }
+  jobQueuesLoad:
+    kind: gauge
+    ttl_seconds: 120             # a sender silent this long drops off the chart
+    display:
+      name: Queue load
+    views:
+      - id: bars
+        type: barGauge
+        default_on: true
+        options:
+          sort: valueDesc        # label, labelDesc, value or valueDesc
+
+  # Which shop modules are up, merged into one record per sender: a module
+  # sent alone keeps its `config`, the full lists refresh every heartBeat.
+  #
+  # Packet (legacy, through the adapter):
+  #   {"type":"shopModulesReport","start":"2026-09-26T19:42:10.000+0200","serverName":"soak-1",
+  #    "moduleStatusMap":{"cart":{"name":"cart","heartBeat":1790437330000,"queue":12}}}
+  #
+  # The same traffic from soak.yaml:
+  #   - name: shopModules
+  #     type: info
+  #     packetType: shopModulesReport
+  #     rate: 1
+  #     partial: true
+  #     dims: { module: [cart, search, payments, auth, mail] }
+  #     values: { queue: [0, 50] }
+  shopModules:
+    kind: info
+    packet_type: shopModulesReport
+    merge: true
+    display:
+      name: Shop modules
+
+  # The shop's feature rollout, each report kept whole: the newest 20.
+  #
+  # The same traffic from soak.yaml:
+  #   - name: shopRelease
+  #     type: info
+  #     packetType: shopReleaseReport
+  #     rate: 1
+  #     dims: { feature: [newCheckout, darkMode, betaSearch] }
+  #     values: { rollout: [0, 100] }
+  shopRelease:
+    kind: info
+    packet_type: shopReleaseReport
+    retention:
+      versions: 20
+    display:
+      name: Shop release

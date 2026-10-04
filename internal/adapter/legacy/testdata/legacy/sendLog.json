@@ -1,0 +1,6 @@
+{"type":"legacyCustomLog","start":"2026-09-19T10:11:12.123+0200","executionTime":0,
+ "legacyMessage":"","legacyLevel":"DEBUG","user":"unknown","account":"unknown",
+ "accountName":"unknown","legacyGroupKey":"","skipRequest":true,
+ "logPrefix":"sendLogs","method":"sendMail","emailType":"orderConfirmation",
+ "fromMail":"do_not_reply@example.test","fromName":"Example","whichSender":"PRIMARY",
+ "to":"user@example.test","subject":"Order confirmation","redirected":false}

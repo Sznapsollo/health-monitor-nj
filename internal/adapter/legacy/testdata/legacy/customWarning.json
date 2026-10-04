@@ -1,0 +1,4 @@
+{"type":"legacyCustomWarning","start":"2026-09-19T10:11:12.123+0200","executionTime":0,
+ "legacyMessage":"Starting serverName: prod-1 appName: example, master, abc1234",
+ "legacyLevel":"INFO","serverName":"prod-1","port":"8080","user":"unknown",
+ "account":"unknown","accountName":"unknown","legacyGroupKey":""}
