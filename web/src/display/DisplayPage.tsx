@@ -26,6 +26,7 @@ import { useMonitorStore } from '../store/useMonitorStore'
 import { useServerStore } from '../store/useServerStore'
 import { useThemeMode } from '../theme/useThemeMode'
 import type { SignalView } from '../ws/types'
+import { formatElapsed } from '../app/elapsed'
 import { GaugesSection } from '../app/GaugesSection'
 import { NoticeBanner } from '../app/NoticeBanner'
 import { ResourceBadge } from '../app/ResourceBadge'
@@ -288,7 +289,7 @@ export function DisplayPage() {
         {lost ? (
           <Chip
             color="warning"
-            label={t('display.lost', { minutes: Math.max(1, Math.round(silentFor / 60000)) })}
+            label={t('display.lost', { age: formatElapsed(silentFor / 1000) })}
           />
         ) : options?.showLive ? (
           <Chip

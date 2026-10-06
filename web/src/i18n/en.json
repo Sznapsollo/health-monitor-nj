@@ -17,8 +17,6 @@
     "checking": "Checking the server…",
     "version": "Version",
     "uptime": "Uptime",
-    "seconds_one": "{{count}} second",
-    "seconds_other": "{{count}} seconds",
     "help": "Every server or sender that reports its state. Last seen is when its latest heartbeat arrived, re-read here every 10 seconds; one silent for longer than the alert rules allow (Servers not reporting, 5 minutes by default) is shown as down and raises an alert. Packets / min is everything that server sent in the last complete minute, by the name in its packets; the Packets received chart shows it over time.",
     "packets": "Packets / min"
   },
@@ -119,7 +117,7 @@
     "open": "Live",
     "connecting": "Connecting…",
     "closed": "Reconnecting…",
-    "lastUpdate": "updated {{seconds}} s ago",
+    "lastUpdate": "updated {{age}} ago",
     "lastUpdateAt": "Last message from the server at {{at}}"
   },
   "tile": {
@@ -427,7 +425,7 @@
   "display": {
     "live": "Live · updated {{time}}",
     "diskLow": "Disk almost full on the monitor: {{free}} free of {{total}}",
-    "lost": "No connection for {{minutes}} min",
+    "lost": "No connection for {{age}}",
     "quiet": "Live · no new data since {{time}}"
   },
   "dashboard": {

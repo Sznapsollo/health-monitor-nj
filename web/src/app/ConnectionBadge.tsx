@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 
 import { useMonitorStore } from '../store/useMonitorStore'
 import type { ConnectionState } from '../ws/client'
+import { formatElapsed } from './elapsed'
 
 const COLOR: Record<ConnectionState, 'success' | 'warning' | 'error'> = {
   open: 'success',
@@ -53,10 +54,10 @@ export function ConnectionBadge({ state, serverTime }: Props) {
               display: 'inline-block',
               textAlign: 'right',
               fontVariantNumeric: 'tabular-nums',
-              minWidth: `${t('connection.lastUpdate', { seconds: 999 }).length}ch`,
+              minWidth: `${t('connection.lastUpdate', { age: formatElapsed(3599) }).length}ch`,
             }}
           >
-            {t('connection.lastUpdate', { seconds: age ?? 0 })}
+            {t('connection.lastUpdate', { age: formatElapsed(age ?? 0) })}
           </Typography>
         </Tooltip>
       ) : null}

@@ -17,10 +17,6 @@
     "checking": "Sprawdzanie serwera…",
     "version": "Wersja",
     "uptime": "Czas działania",
-    "seconds_one": "{{count}} sekunda",
-    "seconds_few": "{{count}} sekundy",
-    "seconds_many": "{{count}} sekund",
-    "seconds_other": "{{count}} sekundy",
     "help": "Każdy serwer lub nadawca zgłaszający swój stan. Ostatnio to chwila nadejścia jego ostatniego sygnału życia, odczytywany tu co 10 sekund; taki, który milczy dłużej, niż pozwalają reguły alertów (Serwery, które się nie zgłaszają, domyślnie 5 minut), jest pokazany jako niedostępny i wywołuje alert. Pakiety / min to wszystko, co ten serwer wysłał w ostatniej pełnej minucie, po nazwie w jego pakietach; wykres Odebrane pakiety pokazuje to w czasie.",
     "packets": "Pakiety / min"
   },
@@ -125,7 +121,7 @@
     "open": "Na żywo",
     "connecting": "Łączenie…",
     "closed": "Ponowne łączenie…",
-    "lastUpdate": "aktualizacja {{seconds}} s temu",
+    "lastUpdate": "aktualizacja {{age}} temu",
     "lastUpdateAt": "Ostatnia wiadomość z serwera o {{at}}"
   },
   "tile": {
@@ -439,7 +435,7 @@
   "display": {
     "live": "Na żywo · aktualizacja {{time}}",
     "diskLow": "Dysk monitora prawie pełny: {{free}} wolne z {{total}}",
-    "lost": "Brak połączenia od {{minutes}} min",
+    "lost": "Brak połączenia od {{age}}",
     "quiet": "Na żywo · brak nowych danych od {{time}}"
   },
   "dashboard": {

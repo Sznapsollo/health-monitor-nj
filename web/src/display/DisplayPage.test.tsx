@@ -303,7 +303,7 @@ describe('what a wall display shows around its dashboard', () => {
     act(() =>
       useMonitorStore.setState({ connection: 'closed', lastContact: Date.now() - 3 * 60_000 }),
     )
-    expect(await screen.findByText('No connection for 3 min')).toBeInTheDocument()
+    expect(await screen.findByText('No connection for 3m 0s')).toBeInTheDocument()
   })
 
   it('lets people at the screen pick the theme, starting from automatic', async () => {

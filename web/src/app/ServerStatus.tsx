@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { fetchHealth, type Health } from '../api/health'
+import { formatElapsed } from './elapsed'
 
 type State = { kind: 'loading' } | { kind: 'ok'; health: Health } | { kind: 'error' }
 
@@ -30,7 +31,7 @@ export function ServerStatus() {
       <Alert severity="success">{t('status.online')}</Alert>
       <Chip label={`${t('status.version')}: ${state.health.version}`} size="small" />
       <Chip
-        label={`${t('status.uptime')}: ${t('status.seconds', { count: state.health.uptimeSeconds })}`}
+        label={`${t('status.uptime')}: ${formatElapsed(state.health.uptimeSeconds)}`}
         size="small"
       />
     </Stack>
