@@ -1,4 +1,11 @@
-import type { Column, Dashboard, Row } from '../api/dashboards'
+import {
+  fetchDashboards,
+  saveDashboard,
+  slugOf,
+  type Column,
+  type Dashboard,
+  type Row,
+} from '../api/dashboards'
 
 const FORMAT = 'hm-dashboards'
 
@@ -11,6 +18,13 @@ export interface Portable {
 
 export function portable(d: Dashboard): Portable {
   return { name: d.name, ...(d.default ? { default: true } : {}), rows: structuredClone(d.rows) }
+}
+
+/** Saves a copy on another platform, under a new id when its own is taken there. */
+export async function copyToPlatform(dashboard: Dashboard, target: string): Promise<Dashboard> {
+  const taken = (await fetchDashboards(target)).map((d) => d.id)
+  const id = slugOf(dashboard.name, taken)
+  return saveDashboard(target, { id, platform: target, ...portable(dashboard) })
 }
 
 export function exportText(dashboards: Dashboard[]): string {

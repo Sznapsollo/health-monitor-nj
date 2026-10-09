@@ -377,7 +377,7 @@ func (d Deps) checkPairing(platform, dashboard string) error {
 	if d.Dashboards == nil {
 		return errors.New("this server defines no dashboards")
 	}
-	available := d.Dashboards.For(platform)
+	available := d.dashboardsFor(platform)
 	for _, board := range available {
 		if board.ID == dashboard {
 			return nil

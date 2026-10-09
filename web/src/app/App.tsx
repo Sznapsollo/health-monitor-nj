@@ -29,6 +29,7 @@ import {
   exportText,
   parseImport,
 } from '../dashboard/transfer'
+import { CopyToPlatformButton } from '../dashboard/CopyToPlatform'
 import { DashboardPage } from '../dashboard/DashboardPage'
 import { ChartsPage } from './ChartsPage'
 import { LiveConnectionBadge } from './ConnectionBadge'
@@ -136,6 +137,7 @@ export function App() {
   const [draft, setDraft] = useState<Dashboard | null>(null)
   const [dashboardError, setDashboardError] = useState<string | null>(null)
   const [dashboardInfo, setDashboardInfo] = useState<string | null>(null)
+  const [copied, setCopied] = useState<{ name: string; from: string; to: string } | null>(null)
   const importInput = useRef<HTMLInputElement>(null)
 
   // An arrangement, when the platform defines one, is what most people want
@@ -368,11 +370,13 @@ export function App() {
                     </Select>
                   ) : null}
                   <Typography variant="body2" color="text.secondary">
-                    {current.readOnly
-                      ? t('dashboard.shipped')
-                      : current.createdBy
-                        ? t('dashboard.by', { name: current.createdBy })
-                        : ''}
+                    {current.generated
+                      ? t('dashboard.generated')
+                      : current.readOnly
+                        ? t('dashboard.shipped')
+                        : current.createdBy
+                          ? t('dashboard.by', { name: current.createdBy })
+                          : ''}
                   </Typography>
                   {!current.readOnly ? (
                     <Button size="small" onClick={() => setDraft(structuredClone(current))}>
@@ -398,6 +402,18 @@ export function App() {
                     {t('dashboard.exportAll')}
                   </Button>
                   {importButton}
+                  <CopyToPlatformButton
+                    dashboard={current}
+                    platforms={platforms}
+                    onCopied={(to) => {
+                      setDashboardError(null)
+                      setCopied({ name: current.name, from: platform, to })
+                    }}
+                    onError={(reason) => {
+                      setCopied(null)
+                      setDashboardError(t('dashboard.copyFailed', { reason }))
+                    }}
+                  />
                   {!current.readOnly ? (
                     <Button
                       size="small"
@@ -412,6 +428,26 @@ export function App() {
                 {dashboardInfo ? (
                   <Alert severity="success" onClose={() => setDashboardInfo(null)}>
                     {dashboardInfo}
+                  </Alert>
+                ) : null}
+                {copied?.from === platform ? (
+                  <Alert
+                    severity="success"
+                    onClose={() => setCopied(null)}
+                    action={
+                      <Button
+                        color="inherit"
+                        size="small"
+                        onClick={() => {
+                          setCopied(null)
+                          setPlatform(copied.to)
+                        }}
+                      >
+                        {t('dashboard.openPlatform', { platform: copied.to })}
+                      </Button>
+                    }
+                  >
+                    {t('dashboard.copied', { name: copied.name, platform: copied.to })}
                   </Alert>
                 ) : null}
                 <DashboardPage

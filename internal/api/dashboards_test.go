@@ -23,10 +23,14 @@ import (
 func dashboardFixture(t *testing.T) (*httptest.Server, *dashboard.Store, string) {
 	t.Helper()
 	reg := signal.NewRegistry()
-	if err := reg.Add(&signal.Definition{
-		Platform: "test", Name: "requests", Kind: signal.KindTimeseries, Dims: []string{"url"},
-	}); err != nil {
-		t.Fatal(err)
+	for _, def := range []*signal.Definition{
+		{Platform: "test", Name: "requests", Kind: signal.KindTimeseries, Dims: []string{"url"}},
+		{Platform: "web", Name: "requests", Kind: signal.KindTimeseries, Dims: []string{"url"}},
+		{Platform: "web", Name: "serverLoad", Kind: signal.KindGauge},
+	} {
+		if err := reg.Add(def); err != nil {
+			t.Fatal(err)
+		}
 	}
 	dir := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(dir, "test"), 0o755); err != nil {
@@ -215,5 +219,62 @@ func TestDisplayTokenCannotEditDashboards(t *testing.T) {
 	_ = res.Body.Close()
 	if res.StatusCode != http.StatusForbidden {
 		t.Fatalf("a display token could save a dashboard: %d", res.StatusCode)
+	}
+}
+
+func TestAPlatformWithoutDashboardsGetsAnOverview(t *testing.T) {
+	srv, _, _ := dashboardFixture(t)
+	c := client(t)
+	_ = post(t, c, srv.URL+"/api/login", map[string]string{"name": "anna", "password": "pw"}).Body.Close()
+	list := func() []dashboard.Dashboard {
+		t.Helper()
+		res, err := c.Get(srv.URL + "/api/dashboards?platform=web")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = res.Body.Close() }()
+		var body struct{ Dashboards []dashboard.Dashboard }
+		if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		return body.Dashboards
+	}
+
+	got := list()
+	if len(got) != 1 || got[0].ID != dashboard.OverviewID || !got[0].Generated || !got[0].Default {
+		t.Fatalf("dashboards = %+v, want only the generated overview", got)
+	}
+
+	tok := post(t, c, srv.URL+"/api/display-tokens", map[string]string{
+		"name": "tv", "platform": "web", "dashboard": dashboard.OverviewID,
+	})
+	var token struct{ ID string }
+	_ = json.NewDecoder(tok.Body).Decode(&token)
+	_ = tok.Body.Close()
+	if tok.StatusCode != http.StatusCreated {
+		t.Fatalf("pairing a screen with the overview: %d", tok.StatusCode)
+	}
+
+	res := do(t, c, http.MethodDelete, srv.URL+"/api/dashboards/overview?platform=web", nil)
+	_ = res.Body.Close()
+	if res.StatusCode != http.StatusConflict {
+		t.Errorf("delete overview: %d, want 409", res.StatusCode)
+	}
+
+	mine := map[string]any{"name": "Mine", "columns": []any{map[string]any{"panels": []any{map[string]any{"type": "status"}}}}}
+	res = do(t, c, http.MethodPut, srv.URL+"/api/dashboards/mine?platform=web", mine)
+	_ = res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("put: %d", res.StatusCode)
+	}
+	got = list()
+	if len(got) != 2 || got[1].ID != dashboard.OverviewID || got[1].Default {
+		t.Fatalf("dashboards = %+v, want the screen's overview kept, no longer the default", got)
+	}
+
+	res = do(t, c, http.MethodDelete, srv.URL+"/api/display-tokens/"+token.ID, nil)
+	_ = res.Body.Close()
+	if got = list(); len(got) != 1 || got[0].ID != "mine" {
+		t.Fatalf("dashboards = %+v, want the overview gone once nothing shows it", got)
 	}
 }

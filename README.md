@@ -81,8 +81,10 @@ To work on the code itself (Go and Node needed), see [Run it](#run-it).
 - [HTTP and WebSocket](#http-and-websocket)
 - [Dashboards](#dashboards)
   - [Filtering a chart panel](#filtering-a-chart-panel)
+  - [A platform with no dashboards: the overview](#a-platform-with-no-dashboards-the-overview)
   - [Made from the UI](#made-from-the-ui)
   - [Export and import](#export-and-import)
+  - [Copying to another platform](#copying-to-another-platform)
   - [Keeping dashboards safe](#keeping-dashboards-safe)
 - [Choosing which charts you see](#choosing-which-charts-you-see)
 - [Filters, links and saved sets](#filters-links-and-saved-sets)
@@ -1085,6 +1087,20 @@ With a filter set, the main chart counts only what the filter keeps, and its
 header says so (`Only "orders, cart"`). Past the signal's `hot_detail_minutes`
 those counts come from the database's per-value rows.
 
+### A platform with no dashboards: the overview
+
+A platform with no dashboard of its own, shipped or made in the UI, gets
+**Overview**. It is made from the platform's signals rather than stored: every
+gauge, then every chart, in a wide column, with the alerts (errors and
+warnings) and status in a narrow one beside them. With no chart signal yet, it
+charts the built-in `packets` by sender. It follows the signals as they are
+defined, is read-only (**Duplicate** it to change it), and a wall display can
+be paired with it.
+
+It goes away once the platform has a dashboard of its own, unless a wall
+display is paired with it. Then it stays, no longer the default, until that
+screen is re-pointed or its token revoked. It cannot be deleted.
+
 ### Made from the UI
 
 The Dashboard tab has **New**, **Duplicate**, **Edit** and **Delete**. Editing
@@ -1139,6 +1155,16 @@ returns it, or the older single-row `columns:` form:
 
 A panel naming a signal the platform does not define shows "waiting" until
 that signal is defined.
+
+### Copying to another platform
+
+With more than one platform, **Copy to platform…** saves the open dashboard on
+the platform picked from its list. It keeps the same name, under a new id if
+its own is taken there. It is a copy: the two change separately from then on.
+Panels refer to signals by name, so they chart there as soon as that platform
+defines the same names, and show "waiting" until then. **Open <platform>** in
+the confirmation switches to it. The same as exporting here and importing
+there.
 
 ### Keeping dashboards safe
 

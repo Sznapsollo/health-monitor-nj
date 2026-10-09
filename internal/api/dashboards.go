@@ -88,7 +88,13 @@ func (d Deps) handleDeleteDashboard(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
-	for _, have := range d.Dashboards.For(platform) {
+	for _, have := range d.dashboardsFor(platform) {
+		if have.ID == id && have.Generated {
+			writeJSON(w, http.StatusConflict, map[string]string{
+				"error": id + " is made from the platform's signals and goes away once it has a dashboard of its own",
+			})
+			return
+		}
 		if have.ID == id && have.ReadOnly {
 			writeJSON(w, http.StatusConflict, map[string]string{
 				"error": id + " comes from dashboards.yaml and can only be removed there",

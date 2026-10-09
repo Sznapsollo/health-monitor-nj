@@ -103,6 +103,47 @@ type Dashboard struct {
 	// ReadOnly marks a dashboard from the shipped dashboards.yaml; the UI
 	// duplicates those rather than editing them in place.
 	ReadOnly bool `json:"readOnly,omitempty" yaml:"-"`
+	// Generated marks the overview made from a platform's signals, which
+	// exists only while the platform has no dashboard of its own.
+	Generated bool `json:"generated,omitempty" yaml:"-"`
+}
+
+// OverviewID names the generated overview.
+const OverviewID = "overview"
+
+// Overview arranges every chart and gauge a platform defines, with its alerts
+// and status beside them. False when there is nothing to arrange.
+func Overview(platform string, defs []*signal.Definition) (Dashboard, bool) {
+	if len(defs) == 0 {
+		return Dashboard{}, false
+	}
+	var gauges, charts []Panel
+	var packets *signal.Definition
+	for _, def := range defs {
+		switch {
+		case def.Name == signal.PacketsSignal:
+			packets = def
+		case def.Kind == signal.KindGauge:
+			gauges = append(gauges, Panel{Type: PanelGauge, Signal: def.Name, Height: 200})
+		case def.Kind == signal.KindTimeseries:
+			charts = append(charts, Panel{Type: PanelChart, Signal: def.Name, Height: 260})
+		}
+	}
+	if len(charts) == 0 && packets != nil {
+		charts = append(charts, Panel{Type: PanelChart, Signal: packets.Name, Group: "sender", Top: 8, Height: 260})
+	}
+	side := Column{Width: 1, Panels: []Panel{
+		{Type: PanelAlerts, Levels: []string{"ERROR", "WARN"}, Limit: 20},
+		{Type: PanelStatus},
+	}}
+	columns := []Column{side}
+	if main := append(gauges, charts...); len(main) > 0 {
+		columns = []Column{{Width: 2, Panels: main}, side}
+	}
+	return Dashboard{
+		ID: OverviewID, Platform: platform, Name: "Overview", Default: true,
+		Rows: []Row{{Columns: columns}}, ReadOnly: true, Generated: true,
+	}, true
 }
 
 // SharedDir is where dashboards made from the UI live, one file each.

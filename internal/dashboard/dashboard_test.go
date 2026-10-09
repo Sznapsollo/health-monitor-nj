@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/Sznapsollo/health-monitor-nj/internal/dashboard"
+	"github.com/Sznapsollo/health-monitor-nj/internal/signal"
 )
 
 // The arrangement from the request that prompted this: queues above requests
@@ -277,5 +278,39 @@ func TestStackedChoiceSurvivesSave(t *testing.T) {
 	}
 	if panels[1].Stacked != nil {
 		t.Errorf("default panel came back as %v, want unset", *panels[1].Stacked)
+	}
+}
+
+func TestOverviewArrangesWhatThePlatformDefines(t *testing.T) {
+	if _, ok := dashboard.Overview("p", nil); ok {
+		t.Error("an overview of nothing")
+	}
+
+	d, ok := dashboard.Overview("p", []*signal.Definition{
+		{Name: "jobs", Kind: signal.KindTimeseries},
+		{Name: "queues", Kind: signal.KindGauge},
+		{Name: "packets", Kind: signal.KindTimeseries},
+		{Name: "release", Kind: signal.KindInfo},
+		{Name: "requests", Kind: signal.KindTimeseries},
+	})
+	if !ok || d.Validate() != nil || !d.Generated || !d.ReadOnly {
+		t.Fatalf("overview = %+v", d)
+	}
+	var main []string
+	for _, p := range d.Rows[0].Columns[0].Panels {
+		main = append(main, string(p.Type)+":"+p.Signal)
+	}
+	if got := strings.Join(main, " "); got != "gauge:queues chart:jobs chart:requests" {
+		t.Errorf("main column = %s", got)
+	}
+
+	d, _ = dashboard.Overview("p", []*signal.Definition{{Name: "packets", Kind: signal.KindTimeseries}})
+	if p := d.Rows[0].Columns[0].Panels[0]; p.Signal != "packets" || p.Group != "sender" {
+		t.Errorf("with nothing else, the packets chart by sender; got %+v", p)
+	}
+
+	d, _ = dashboard.Overview("p", []*signal.Definition{{Name: "release", Kind: signal.KindInfo}})
+	if len(d.Rows[0].Columns) != 1 || d.Validate() != nil {
+		t.Errorf("with nothing to chart, alerts and status alone; got %+v", d)
 	}
 }

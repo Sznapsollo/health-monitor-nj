@@ -43,6 +43,8 @@ export interface Dashboard {
   updatedBy?: string
   /** From the platform's dashboards.yaml: duplicate it rather than edit it. */
   readOnly?: boolean
+  /** Made from the platform's signals while it has no dashboard of its own. */
+  generated?: boolean
 }
 
 export async function fetchDashboards(

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/Sznapsollo/health-monitor-nj/internal/dashboard"
 	"github.com/Sznapsollo/health-monitor-nj/internal/signal"
 	"github.com/Sznapsollo/health-monitor-nj/internal/state"
 )
@@ -183,8 +184,46 @@ func (d Deps) handleDashboards(w http.ResponseWriter, r *http.Request) {
 	platform := d.platformOf(r)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"platform":   platform,
-		"dashboards": d.Dashboards.For(platform),
+		"dashboards": d.dashboardsFor(platform),
 	})
+}
+
+// dashboardsFor is a platform's own dashboards plus, while it has none or a
+// wall display still shows it, the overview made from its signals.
+func (d Deps) dashboardsFor(platform string) []dashboard.Dashboard {
+	list := d.Dashboards.For(platform)
+	if d.Registry == nil {
+		return list
+	}
+	overview, ok := dashboard.Overview(platform, d.Registry.Definitions(platform))
+	if !ok {
+		return list
+	}
+	for _, have := range list {
+		if have.ID == overview.ID {
+			return list
+		}
+	}
+	if len(list) == 0 {
+		return []dashboard.Dashboard{overview}
+	}
+	if d.displayShows(platform, overview.ID) {
+		overview.Default = false
+		return append(list, overview)
+	}
+	return list
+}
+
+func (d Deps) displayShows(platform, id string) bool {
+	if d.Auth == nil {
+		return false
+	}
+	for _, token := range d.Auth.DisplayTokens() {
+		if token.Platform == platform && token.Dashboard == id {
+			return true
+		}
+	}
+	return false
 }
 
 // handleState is the HM-errors view: what the hot state holds, what could not
