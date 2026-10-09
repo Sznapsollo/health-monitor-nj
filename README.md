@@ -19,8 +19,32 @@ restart. It runs from the binary or from Docker
 Open source under the [MIT license](LICENSE):
 [github.com/Sznapsollo/health-monitor-nj](https://github.com/Sznapsollo/health-monitor-nj).
 
+## Quick start
+
+All it needs is Docker (with Compose) and make. Nothing to configure first:
+
+```bash
+git clone https://github.com/Sznapsollo/health-monitor-nj.git
+cd health-monitor-nj
+make up
+```
+
+The last lines `make up` prints are the address and the password:
+
+```
+docker-up: up: http://localhost:8081 (UDP intake on 8082)
+docker-up: log in with any name and the password fWHG6WGLvhRZcBD8 (HM_PASS in .env; change it there and run make up again)
+```
+
+Open <http://localhost:8081> and log in with any name and that password.
+The first `make up` creates `.env` and writes a random password into it, so
+`grep HM_PASS .env` shows it again later. To pick your own, change `HM_PASS`
+in `.env` and run `make up` again. Your data is kept. Point your senders'
+UDP at port 8082 on this host.
+
 ## Contents
 
+- [Quick start](#quick-start)
 - [Screenshots](#screenshots)
 - [Requirements](#requirements)
 - [Run it](#run-it)
@@ -257,18 +281,28 @@ page built in, no shell.
 ### First start
 
 ```bash
+make up
+```
+
+When there is no `.env` yet, `make up` copies `.env.example` to `.env`. It
+also puts a random password into `HM_PASS` whenever that is empty and
+`HM_OPEN` is not `1`. It prints the password at the end. Open
+<http://localhost:8081> and log in with any name and that password.
+`grep HM_PASS .env` shows it again later. To change it, edit `HM_PASS` in
+`.env` and run `make up` again. Senders send UDP to port 8082 on this host.
+
+Without `make` (no generated password, so set your own):
+
+```bash
 cp .env.example .env        # then set HM_PASS in it
 docker compose up -d --build
 ```
-
-Open <http://localhost:8081> and log in with any name and the password from
-`.env`. Senders send UDP to port 8082 on this host.
 
 `.env` (git-ignored) is read by `docker compose` on its own:
 
 | Setting | Default | What it does |
 |---|---|---|
-| `HM_PASS` | empty | the dashboard password; the monitor will not start without one unless `HM_OPEN=1` |
+| `HM_PASS` | empty (`make up` generates one) | the dashboard password; the monitor will not start without one unless `HM_OPEN=1` |
 | `HM_OPEN` | empty | `1` runs the monitor with no password, open to anyone who can reach it |
 | `HM_HTTP_PORT` | `8081` | host port for the page and the API |
 | `HM_UDP_PORT` | `8082` | host port for the UDP intake |
@@ -305,13 +339,15 @@ make up-soak     # the monitor and the soak sender
 
 `make up` (`scripts/docker-up.sh`):
 
-1. frees 8081/8082 if a `make dev` server still holds them (stopping it and
+1. creates `.env` with a random `HM_PASS` when no password is set yet (see
+   [First start](#first-start));
+2. frees 8081/8082 if a `make dev` server still holds them (stopping it and
    saying so), because Docker would otherwise start the container without
    its ports;
-2. builds the image from your working tree, uncommitted changes included,
+3. builds the image from your working tree, uncommitted changes included,
    while the old container keeps serving;
-3. replaces the container (`--force-recreate`) and waits until it is healthy;
-4. checks the ports are published and `/healthz` answers, recreating once
+4. replaces the container (`--force-recreate`) and waits until it is healthy;
+5. checks the ports are published and `/healthz` answers, recreating once
    more if not, and otherwise prints the status and the last log lines.
 
 The volume is never touched: data, dashboards, signals and rules stay.
@@ -1192,7 +1228,9 @@ gets a signed cookie for seven days; the name is only used to label you in the
 sessions list and on "send message". **With no password set the server refuses
 to start** unless `HM_OPEN=1` (`auth.open: true`) says to run it open, which is
 meant for development and is said plainly in the log at start. `make dev`,
-`make dev-server` and `make dev-server-once` set `HM_OPEN=1` for you.
+`make dev-server` and `make dev-server-once` set `HM_OPEN=1` for you. `make up`
+writes a random password into `.env` when none is set and prints it. Change
+it there whenever you like.
 
 Ten wrong passwords in a minute from one address hold that address off for
 the rest of the minute; the address is the connection's, not
