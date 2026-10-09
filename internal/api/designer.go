@@ -434,3 +434,80 @@ func standardViews(kind signal.Kind, hasMS bool, top int) []signal.View {
 		{ID: "byGroup", Type: "minuteSeriesPerGroup", Value: "count", Style: "column", Top: top, DefaultOn: true, Options: options},
 	}
 }
+
+// handleExportSignals downloads a platform's signals as a signals.yaml.
+func (d Deps) handleExportSignals(w http.ResponseWriter, r *http.Request) {
+	platform := r.URL.Query().Get("platform")
+	if d.Registry == nil || !d.knownPlatform(platform) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "no platform " + platform})
+		return
+	}
+	b, err := signal.Export(platform, d.Registry.Definitions(platform))
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+	w.Header().Set("Content-Type", "application/yaml")
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="signals_%s.yaml"`, platform))
+	_, _ = w.Write(b)
+}
+
+// handleImportSignals defines the signals of an exported file that the
+// platform does not define yet; the ones it does are left as they are.
+func (d Deps) handleImportSignals(w http.ResponseWriter, r *http.Request) {
+	if d.Registry == nil || d.PlatformsDir == "" {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "signals cannot be saved here"})
+		return
+	}
+	platform := r.URL.Query().Get("platform")
+	if err := d.designablePlatform(platform); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+	var body struct {
+		Text string `json:"text"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "could not read that file"})
+		return
+	}
+	defs, err := signal.ParseExport([]byte(body.Text), platform)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+
+	who := sessionName(r)
+	imported, skipped := []string{}, []string{}
+	var saved []*signal.Definition
+	for _, def := range defs {
+		if d.defined(platform, def.Name) {
+			skipped = append(skipped, def.Name)
+			continue
+		}
+		def.CreatedBy, def.UpdatedBy = who, who
+		if err := signal.Save(d.PlatformsDir, *def); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": def.Name + ": " + err.Error()})
+			return
+		}
+		imported = append(imported, def.Name)
+		saved = append(saved, def)
+	}
+	if len(saved) > 0 {
+		if _, err := signal.Reload(d.PlatformsDir, platform, d.Registry); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+	}
+	for _, def := range saved {
+		if d.Core == nil {
+			break
+		}
+		d.Core.ForgetCandidate(platform, def.Name)
+		if def.PacketType != "" {
+			d.Core.ForgetCandidate(platform, def.PacketType)
+		}
+	}
+	d.Log.Info("signals imported", "platform", platform, "imported", imported, "skipped", skipped, "by", who)
+	writeJSON(w, http.StatusOK, map[string]any{"imported": imported, "skipped": skipped})
+}

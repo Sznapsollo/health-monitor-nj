@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"encoding/json"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -521,5 +522,74 @@ func TestAnUnknownReportTypeCanBeChartedFromItsFields(t *testing.T) {
 	}
 	if left := candidatesOf(t, c, f.srv.URL); len(left) != 0 {
 		t.Fatalf("candidates = %+v, want none once a chart names the type", left)
+	}
+}
+
+func TestSignalsExportAndImportOnlyWhatIsMissing(t *testing.T) {
+	f := newDesignerFixture(t)
+	c := client(t)
+	_ = post(t, c, f.srv.URL+"/api/login", map[string]string{"name": "anna", "password": "pw"}).Body.Close()
+
+	file := "signals:\n" +
+		"  requests:\n    kind: timeseries\n    input: { dims: [url, user] }\n" +
+		"  checkout:\n    kind: timeseries\n    input: { dims: [region] }\n    display: { name: Checkout }\n" +
+		"  mails:\n    kind: log\n    retention: { log_days: 5 }\n"
+	importFile := func() map[string][]string {
+		t.Helper()
+		res := post(t, c, f.srv.URL+"/api/signals/import?platform=test", map[string]string{"text": file})
+		defer func() { _ = res.Body.Close() }()
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("import: %d", res.StatusCode)
+		}
+		var out map[string][]string
+		if err := json.NewDecoder(res.Body).Decode(&out); err != nil {
+			t.Fatal(err)
+		}
+		return out
+	}
+
+	got := importFile()
+	if strings.Join(got["imported"], ",") != "checkout,mails" || strings.Join(got["skipped"], ",") != "requests" {
+		t.Fatalf("first import = %v", got)
+	}
+	if def, _ := f.reg.Lookup("test", "requests"); len(def.Dims) != 1 {
+		t.Errorf("the defined requests was changed: dims %v", def.Dims)
+	}
+	if def, ok := f.reg.Lookup("test", "checkout"); !ok || def.Display.Name != "Checkout" || def.CreatedBy != "anna" {
+		t.Errorf("checkout = %+v", def)
+	}
+	if got = importFile(); len(got["imported"]) != 0 || len(got["skipped"]) != 3 {
+		t.Errorf("second import = %v, want everything skipped", got)
+	}
+
+	res, err := c.Get(f.srv.URL + "/api/signals/export?platform=test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := new(strings.Builder)
+	_, _ = io.Copy(body, res.Body)
+	_ = res.Body.Close()
+	if res.StatusCode != http.StatusOK || !strings.Contains(res.Header.Get("Content-Disposition"), "signals_test.yaml") {
+		t.Fatalf("export: %d %v", res.StatusCode, res.Header)
+	}
+	for _, name := range []string{"requests:", "checkout:", "mails:"} {
+		if !strings.Contains(body.String(), name) {
+			t.Errorf("export lacks %s:\n%s", name, body)
+		}
+	}
+	if strings.Contains(body.String(), "anna") || strings.Contains(body.String(), "packets:") {
+		t.Errorf("export carries attribution or the built-in signal:\n%s", body)
+	}
+
+	res = post(t, c, f.srv.URL+"/api/signals/import?platform=test", map[string]string{"text": "signals:\n  x:\n    kind: status\n"})
+	_ = res.Body.Close()
+	if res.StatusCode != http.StatusBadRequest {
+		t.Errorf("a file with an undefinable signal: %d, want 400", res.StatusCode)
+	}
+	anonymous := client(t)
+	res = post(t, anonymous, f.srv.URL+"/api/signals/import?platform=test", map[string]string{"text": file})
+	_ = res.Body.Close()
+	if res.StatusCode != http.StatusUnauthorized {
+		t.Errorf("import without a login: %d", res.StatusCode)
 	}
 }

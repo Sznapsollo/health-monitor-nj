@@ -874,6 +874,19 @@ display:
   name: API sessions
 ```
 
+**Export** downloads every signal the platform defines, shipped or made here,
+as `signals_<platform>.yaml`. It is in the `signals.yaml` format, without who
+made each one. The built-in `packets` signal and auto-registered signals are
+left out. **Import** reads such a file, or any platform's `signals.yaml`, and
+defines **only the signals this platform does not define yet**. One already
+defined, from `signals.yaml` or made here, is left exactly as it is, and the
+result lists what was imported and what was skipped. A file with a signal that
+could not be defined is refused whole, so nothing is half imported. Imported
+signals are files under `platforms/<platform>/signals/`, editable here like any
+other. The API is `GET /api/signals/export?platform=` and
+`POST /api/signals/import?platform=` with `{"text": "<the file>"}`, both
+behind the login.
+
 ### Storage
 
 What the database and the archive files take on disk, and how much the disk

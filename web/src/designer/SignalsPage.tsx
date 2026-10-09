@@ -7,13 +7,20 @@ import TableCell from '@mui/material/TableCell'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Typography from '@mui/material/Typography'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Busy } from '../app/Busy'
 
 import type { SignalSpec } from '../api/catalogue'
-import { deleteSignal, dismissCandidate, fetchCandidates, type Candidate } from '../api/signals'
+import {
+  deleteSignal,
+  dismissCandidate,
+  fetchCandidates,
+  importSignals,
+  signalsExportUrl,
+  type Candidate,
+} from '../api/signals'
 import { useMonitorStore } from '../store/useMonitorStore'
 import { blankDraft, draftFromCandidate, draftFromSpec, type SignalDraft } from './draft'
 import { SampleDialog } from './SampleDialog'
@@ -35,6 +42,7 @@ export function SignalsPage({ platform, specs }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState<string | null>(null)
   const [showing, setShowing] = useState<Candidate | null>(null)
+  const importInput = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -90,6 +98,27 @@ export function SignalsPage({ platform, specs }: Props) {
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'unknown error')
+    }
+  }
+
+  const importFile = async (file: File) => {
+    setError(null)
+    setDone(null)
+    try {
+      const { imported, skipped } = await importSignals(platform, await file.text())
+      const said = [
+        imported.length > 0
+          ? t('designer.imported', { names: imported.join(', ') })
+          : t('designer.importedNone'),
+        skipped.length > 0 ? t('designer.importSkipped', { names: skipped.join(', ') }) : '',
+      ]
+      setDone(said.filter(Boolean).join(' '))
+      await refreshCatalogue()
+      await load()
+    } catch (err) {
+      setError(
+        t('designer.importFailed', { reason: err instanceof Error ? err.message : String(err) }),
+      )
     }
   }
 
@@ -188,9 +217,29 @@ export function SignalsPage({ platform, specs }: Props) {
             {t('designer.defined', { platform })}
           </Typography>
           {platform ? (
-            <Button size="small" onClick={() => setDraft(blankDraft(platform))}>
-              {t('designer.new')}
-            </Button>
+            <>
+              <Button size="small" onClick={() => setDraft(blankDraft(platform))}>
+                {t('designer.new')}
+              </Button>
+              <Button size="small" href={signalsExportUrl(platform)}>
+                {t('designer.export')}
+              </Button>
+              <Button size="small" onClick={() => importInput.current?.click()}>
+                {t('designer.import')}
+              </Button>
+              <input
+                ref={importInput}
+                type="file"
+                accept=".yaml,.yml,.json,application/yaml,application/json"
+                hidden
+                data-testid="signals-import"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  e.target.value = ''
+                  if (file) void importFile(file)
+                }}
+              />
+            </>
           ) : null}
         </Stack>
         <Table size="small">

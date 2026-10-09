@@ -255,4 +255,48 @@ describe('SignalsPage', () => {
       ),
     ).toBeInTheDocument()
   })
+
+  it('exports the platform and imports only what it lacks', async () => {
+    await i18n.changeLanguage('en')
+    const refreshCatalogue = vi.fn(async () => {})
+    useMonitorStore.setState({ refreshCatalogue })
+    let sent: unknown
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (url.startsWith('/api/signals/import')) {
+          sent = JSON.parse(String(init?.body))
+          return {
+            ok: true,
+            json: async () => ({ imported: ['checkout', 'mails'], skipped: ['requests'] }),
+          }
+        }
+        return { ok: true, json: async () => ({ candidates: [] }) }
+      }),
+    )
+
+    render(
+      <ThemeModeProvider>
+        <SignalsPage platform="example" specs={[shipped] as never} />
+      </ThemeModeProvider>,
+    )
+
+    expect(await screen.findByRole('link', { name: 'Export' })).toHaveAttribute(
+      'href',
+      '/api/signals/export?platform=example',
+    )
+    const text = 'signals:\n  checkout:\n    kind: timeseries\n'
+    const file = Object.assign(new File([text], 'signals_example.yaml'), {
+      text: async () => text,
+    })
+    fireEvent.change(screen.getByTestId('signals-import'), { target: { files: [file] } })
+
+    expect(
+      await screen.findByText(
+        'Imported: checkout, mails. Already defined, left as they are: requests.',
+      ),
+    ).toBeInTheDocument()
+    expect(sent).toEqual({ text })
+    expect(refreshCatalogue).toHaveBeenCalled()
+  })
 })

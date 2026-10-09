@@ -95,6 +95,26 @@ export async function dismissCandidate(c: Candidate): Promise<void> {
   if (!res.ok) throw await problem(res)
 }
 
+export function signalsExportUrl(platform: string): string {
+  return `/api/signals/export?platform=${encodeURIComponent(platform)}`
+}
+
+export interface SignalsImport {
+  imported: string[]
+  skipped: string[]
+}
+
+/** Defines the file's signals the platform lacks; the ones it has are left alone. */
+export async function importSignals(platform: string, text: string): Promise<SignalsImport> {
+  const res = await apiFetch(`/api/signals/import?platform=${encodeURIComponent(platform)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  })
+  if (!res.ok) throw await problem(res)
+  return (await res.json()) as SignalsImport
+}
+
 export async function deleteSignal(platform: string, name: string): Promise<void> {
   const res = await apiFetch(signalUrl(platform, name), { method: 'DELETE' })
   if (!res.ok) throw await problem(res)

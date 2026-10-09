@@ -160,6 +160,8 @@ func Handler(d Deps) http.Handler {
 	mux.HandleFunc("GET /api/gauges", d.handleGauges)
 	mux.HandleFunc("GET /api/dashboards", d.handleDashboards)
 	mux.HandleFunc("GET /api/signals/candidates", d.handleSignalCandidates)
+	mux.HandleFunc("GET /api/signals/export", d.handleExportSignals)
+	mux.HandleFunc("POST /api/signals/import", d.handleImportSignals)
 	mux.HandleFunc("GET /api/logs/retention", d.handleLogRetention)
 	mux.HandleFunc("DELETE /api/signals/candidates/{name}", d.handleDismissCandidate)
 	mux.HandleFunc("GET /api/signals/candidates/{name}/sample", d.handleCandidateSample)
