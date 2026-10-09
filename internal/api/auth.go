@@ -328,6 +328,7 @@ func (d Deps) handleLogin(w http.ResponseWriter, r *http.Request) {
 	d.Log.Info("login", "name", session.Name, "remote", r.RemoteAddr)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"name": session.Name, "kind": session.Kind, "expires": session.Expires,
+		"defaultPassword": d.Auth.UsesDefaultPassword(),
 	})
 }
 
@@ -353,6 +354,8 @@ func (d Deps) handleSession(w http.ResponseWriter, r *http.Request) {
 			out["kind"] = session.Kind
 			out["readOnly"] = session.ReadOnly()
 			out["expires"] = session.Expires
+			// Only someone already in learns that the password is the shipped one.
+			out["defaultPassword"] = !session.ReadOnly() && d.Auth.UsesDefaultPassword()
 			// What this screen was paired with, so it needs nothing in its URL.
 			if session.Dashboard != "" {
 				out["platform"] = session.Platform

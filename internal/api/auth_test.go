@@ -652,3 +652,41 @@ func TestChangingThePasswordLogsEveryoneOut(t *testing.T) {
 		t.Fatal("a cookie from before the password change still worked")
 	}
 }
+
+func TestTheDefaultPasswordIsFlaggedOnlyToThoseLoggedIn(t *testing.T) {
+	sessionOf := func(c *http.Client, url string) map[string]any {
+		t.Helper()
+		res, err := c.Get(url + "/api/session")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = res.Body.Close() }()
+		var session map[string]any
+		if err := json.NewDecoder(res.Body).Decode(&session); err != nil {
+			t.Fatal(err)
+		}
+		return session
+	}
+
+	srv, _ := authFixture(t, auth.DefaultPassword)
+	c := client(t)
+	if _, told := sessionOf(c, srv.URL)["defaultPassword"]; told {
+		t.Fatal("a visitor who has not logged in was told the password is the default one")
+	}
+	res := post(t, c, srv.URL+"/api/login", map[string]string{"name": "anna", "password": auth.DefaultPassword})
+	var login map[string]any
+	if err := json.NewDecoder(res.Body).Decode(&login); err != nil {
+		t.Fatal(err)
+	}
+	_ = res.Body.Close()
+	if login["defaultPassword"] != true || sessionOf(c, srv.URL)["defaultPassword"] != true {
+		t.Fatalf("login = %+v, want the default password flagged", login)
+	}
+
+	srv, _ = authFixture(t, "s3cret")
+	c = client(t)
+	_ = post(t, c, srv.URL+"/api/login", map[string]string{"name": "anna", "password": "s3cret"}).Body.Close()
+	if sessionOf(c, srv.URL)["defaultPassword"] != false {
+		t.Fatal("a changed password is still flagged as the default one")
+	}
+}

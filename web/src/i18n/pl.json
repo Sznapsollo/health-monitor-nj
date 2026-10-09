@@ -426,7 +426,9 @@
     "hidePassword": "Ukryj hasło",
     "submit": "Zaloguj",
     "unreachable": "Nie udało się połączyć z monitorem, aby sprawdzić sesję.",
-    "retry": "Spróbuj ponownie"
+    "retry": "Spróbuj ponownie",
+    "defaultPassword": "Zalogowano domyślnym hasłem „default”, którego może użyć każdy, kto ma dostęp do tej strony. Zmień je: ustaw HM_PASS w pliku .env i ponownie uruchom make up.",
+    "defaultPasswordHow": "README → Changing the default password"
   },
   "gauges": {
     "title": "Bieżące wartości",

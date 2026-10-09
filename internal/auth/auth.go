@@ -23,6 +23,9 @@ import (
 // CookieName is the session cookie.
 const CookieName = "hm_session"
 
+// DefaultPassword is what a fresh install logs in with until HM_PASS is set.
+const DefaultPassword = "default"
+
 // DefaultTTL is how long a login lasts. A wall display uses a token instead,
 // because a TV cannot retype a password after a reboot.
 const DefaultTTL = 7 * 24 * time.Hour
@@ -145,6 +148,9 @@ func Open(o Options) (*Manager, error) {
 // Enabled reports whether a password is configured. When it is not, every
 // request is treated as a logged-in user and the server says so at start.
 func (m *Manager) Enabled() bool { return m.password != "" }
+
+// UsesDefaultPassword reports whether the password is still the shipped one.
+func (m *Manager) UsesDefaultPassword() bool { return m.password == DefaultPassword }
 
 // signingKey ties sessions to the password, so changing it logs everyone out.
 func signingKey(secret []byte, password string) []byte {

@@ -27,8 +27,8 @@ log:
   format: json             # json | text (HM_LOG_FORMAT)
 
 auth:
-  # Dashboard password; prefer HM_PASS. The server refuses to start without one
-  # unless open is true (HM_OPEN=1), which is only right for development.
+  # Dashboard password; prefer HM_PASS. Empty means "default", and the page asks
+  # to change it. open: true (HM_OPEN=1) runs with none, only for development.
   password: ""
   open: false
 

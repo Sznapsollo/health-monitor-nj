@@ -416,7 +416,9 @@
     "hidePassword": "Hide password",
     "submit": "Log in",
     "unreachable": "The monitor could not be reached to check your session.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "defaultPassword": "You logged in with the default password \"default\", which anyone who can reach this page can use too. Change it: set HM_PASS in .env and run make up again.",
+    "defaultPasswordHow": "README → Changing the default password"
   },
   "gauges": {
     "title": "Current values",

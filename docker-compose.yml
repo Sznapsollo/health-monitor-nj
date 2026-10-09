@@ -1,6 +1,5 @@
 # The monitor, and optionally a long soak run against it.
-#   make up                         # does all of this, generating HM_PASS into .env
-#   cp .env.example .env            # then set HM_PASS
+#   cp .env.example .env            # then set HM_PASS; without it the password is "default"
 #   docker compose up -d --build    # the monitor on :8081 (page) and :8082/udp (intake)
 #   docker compose --profile soak up -d --build   # plus soak traffic, until stopped
 services:

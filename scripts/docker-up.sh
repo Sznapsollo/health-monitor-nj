@@ -17,19 +17,6 @@ profile=()
 
 say() { echo "docker-up: $*" >&2; }
 
-# A fresh clone has no password, and the monitor refuses to start without one.
-generated=""
-ensure_password() {
-  local open="${HM_OPEN:-$(from_env HM_OPEN)}"
-  [ -n "${HM_PASS:-$(from_env HM_PASS)}" ] && return
-  [[ "$open" =~ ^(1|t|T|true|TRUE|True)$ ]] && return
-  [ -f .env ] || cp .env.example .env
-  generated="$(head -c 48 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | cut -c1-16)"
-  awk -v p="$generated" '/^HM_PASS=/ { if (!done) print "HM_PASS=" p; done = 1; next } { print } END { if (!done) print "HM_PASS=" p }' \
-    .env > .env.tmp && mv .env.tmp .env
-  say "no dashboard password was set; generated one into .env (HM_PASS)"
-}
-
 # A server from `make dev` holds the same ports; Docker would then start the
 # container without them. Only processes this user can see are ours to stop.
 free_port() {
@@ -56,7 +43,6 @@ answers() {
   curl -s -o /dev/null -w '%{http_code}' --max-time 3 "http://127.0.0.1:$http_port/healthz" | grep -q 200
 }
 
-ensure_password
 free_port t "$http_port"
 free_port u "$udp_port"
 
@@ -69,8 +55,8 @@ for attempt in 1 2; do
   docker compose "${profile[@]}" up -d --force-recreate --wait --wait-timeout 60 || true
   if published && answers; then
     say "up: http://localhost:$http_port (UDP intake on $udp_port)"
-    if [ -n "$generated" ]; then
-      say "log in with any name and the password $generated (HM_PASS in .env; change it there and run make up again)"
+    if [ -z "${HM_PASS:-$(from_env HM_PASS)}" ] && [ -z "${HM_OPEN:-$(from_env HM_OPEN)}" ]; then
+      say "log in with any name and the password \"default\"; change it with HM_PASS in .env, then make up"
     fi
     docker compose "${profile[@]}" ps --format 'table {{.Service}}\t{{.Status}}\t{{.Ports}}'
     exit 0

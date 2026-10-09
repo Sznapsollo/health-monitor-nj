@@ -21,26 +21,31 @@ Open source under the [MIT license](LICENSE):
 
 ## Quick start
 
-All it needs is Docker (with Compose) and make. Nothing to configure first:
+Four steps, nothing to configure:
 
-```bash
-git clone https://github.com/Sznapsollo/health-monitor-nj.git
-cd health-monitor-nj
-make up
-```
+1. **Have Docker** (with Compose) **and make.** Go and Node are not needed:
+   everything is built inside Docker.
+2. **Clone the repository:**
 
-The last lines `make up` prints are the address and the password:
+   ```bash
+   git clone https://github.com/Sznapsollo/health-monitor-nj.git
+   cd health-monitor-nj
+   ```
 
-```
-docker-up: up: http://localhost:8081 (UDP intake on 8082)
-docker-up: log in with any name and the password fWHG6WGLvhRZcBD8 (HM_PASS in .env; change it there and run make up again)
-```
+3. **Start it:**
 
-Open <http://localhost:8081> and log in with any name and that password.
-The first `make up` creates `.env` and writes a random password into it, so
-`grep HM_PASS .env` shows it again later. To pick your own, change `HM_PASS`
-in `.env` and run `make up` again. Your data is kept. Point your senders'
-UDP at port 8082 on this host.
+   ```bash
+   make up
+   ```
+
+   The first run builds the image, which takes a few minutes.
+4. **Open <http://localhost:8081>** and log in with any name and the password
+   **`default`**.
+
+Point your senders' UDP at port 8082 on this host. The page reminds you to
+change the password until you do. It takes one line in `.env` and another
+`make up`. See [Changing the default password](#changing-the-default-password).
+To work on the code itself (Go and Node needed), see [Run it](#run-it).
 
 ## Contents
 
@@ -84,6 +89,7 @@ UDP at port 8082 on this host.
   - [The group filter](#the-group-filter)
   - [Two history windows](#two-history-windows)
 - [Logging in](#logging-in)
+  - [Changing the default password](#changing-the-default-password)
 - [Configuration](#configuration)
 - [Data and retention](#data-and-retention)
   - [How chart data is stored](#how-chart-data-is-stored)
@@ -281,28 +287,19 @@ page built in, no shell.
 ### First start
 
 ```bash
-make up
+make up                     # or: docker compose up -d --build
 ```
 
-When there is no `.env` yet, `make up` copies `.env.example` to `.env`. It
-also puts a random password into `HM_PASS` whenever that is empty and
-`HM_OPEN` is not `1`. It prints the password at the end. Open
-<http://localhost:8081> and log in with any name and that password.
-`grep HM_PASS .env` shows it again later. To change it, edit `HM_PASS` in
-`.env` and run `make up` again. Senders send UDP to port 8082 on this host.
-
-Without `make` (no generated password, so set your own):
-
-```bash
-cp .env.example .env        # then set HM_PASS in it
-docker compose up -d --build
-```
+Open <http://localhost:8081> and log in with any name and the password
+`default`. Senders send UDP to port 8082 on this host. Until you set your own
+password, the page shows a warning. See
+[Changing the default password](#changing-the-default-password).
 
 `.env` (git-ignored) is read by `docker compose` on its own:
 
 | Setting | Default | What it does |
 |---|---|---|
-| `HM_PASS` | empty (`make up` generates one) | the dashboard password; the monitor will not start without one unless `HM_OPEN=1` |
+| `HM_PASS` | empty, meaning `default` | the dashboard password |
 | `HM_OPEN` | empty | `1` runs the monitor with no password, open to anyone who can reach it |
 | `HM_HTTP_PORT` | `8081` | host port for the page and the API |
 | `HM_UDP_PORT` | `8082` | host port for the UDP intake |
@@ -339,15 +336,13 @@ make up-soak     # the monitor and the soak sender
 
 `make up` (`scripts/docker-up.sh`):
 
-1. creates `.env` with a random `HM_PASS` when no password is set yet (see
-   [First start](#first-start));
-2. frees 8081/8082 if a `make dev` server still holds them (stopping it and
+1. frees 8081/8082 if a `make dev` server still holds them (stopping it and
    saying so), because Docker would otherwise start the container without
    its ports;
-3. builds the image from your working tree, uncommitted changes included,
+2. builds the image from your working tree, uncommitted changes included,
    while the old container keeps serving;
-4. replaces the container (`--force-recreate`) and waits until it is healthy;
-5. checks the ports are published and `/healthz` answers, recreating once
+3. replaces the container (`--force-recreate`) and waits until it is healthy;
+4. checks the ports are published and `/healthz` answers, recreating once
    more if not, and otherwise prints the status and the last log lines.
 
 The volume is never touched: data, dashboards, signals and rules stay.
@@ -706,7 +701,7 @@ the file:
 | `-addr` | `127.0.0.1:8082` | UDP address of the monitor |
 | `-status` | `http://127.0.0.1:8081` | where to read counters back; `""` to skip |
 | `-token` | `$HM_SOAK_TOKEN` | login or display token, needed for `-status` once `HM_PASS` is set |
-| `-password` | `$HM_PASS` | the monitor's password; soak logs in with it when no token is given |
+| `-password` | `$HM_PASS`, else `default` | the monitor's password; soak logs in with it when no token is given |
 | `-report` | `10s` | how often to print a report |
 
 To change the shape, copy `soak.yaml`, edit it and pass it as `SOAK_CONFIG`
@@ -1225,17 +1220,40 @@ the explicit filters when the selection is ad hoc.
 
 Set `HM_PASS` (or `auth.password`). Any name plus that one shared password
 gets a signed cookie for seven days; the name is only used to label you in the
-sessions list and on "send message". **With no password set the server refuses
-to start** unless `HM_OPEN=1` (`auth.open: true`) says to run it open, which is
-meant for development and is said plainly in the log at start. `make dev`,
-`make dev-server` and `make dev-server-once` set `HM_OPEN=1` for you. `make up`
-writes a random password into `.env` when none is set and prints it. Change
-it there whenever you like.
+sessions list and on "send message". **With no password set, the password is
+`default`**, so a fresh clone starts without any setup. Until you change it,
+every page shows a warning and the log says so at start. `HM_OPEN=1`
+(`auth.open: true`) runs the monitor with no password at all. That is meant
+for development, and the log says so plainly at start. `make dev`,
+`make dev-server` and `make dev-server-once` set `HM_OPEN=1` for you.
 
 Ten wrong passwords in a minute from one address hold that address off for
 the rest of the minute; the address is the connection's, not
 `X-Forwarded-For`, so behind a proxy everyone shares one limit. Changing the
 password logs every browser out; display tokens keep working.
+
+### Changing the default password
+
+Anyone who can reach the page can log in with `default`. Set your own password
+in `.env`, next to `docker-compose.yml` (create it from the example if it is
+not there yet):
+
+```bash
+cp -n .env.example .env     # only if there is no .env yet
+# in .env:
+HM_PASS=your-own-password
+```
+
+Then restart with it:
+
+```bash
+make up                     # or: docker compose up -d
+```
+
+Your data is kept. Everyone logs in again with the new password, and the
+warning is gone. Without Docker, set `HM_PASS` in the server's environment
+or `auth.password` in `config.yaml`, then restart it. The soak sender reads
+the same `HM_PASS` from `.env`.
 
 A wall display — a TV or spare monitor with nobody at it — gets its own
 credential instead. Settings → *Wall displays* asks for a name **and the
@@ -1296,8 +1314,8 @@ variables. No file is needed for local development; for Docker, see
 | `HM_ADMIN_ADDR` | `server.admin_addr` | `127.0.0.1:8083` (pprof; keep private) |
 | `HM_LOG_LEVEL` | `log.level` | `info` |
 | `HM_LOG_FORMAT` | `log.format` | `json` |
-| `HM_PASS` | `auth.password` | — (dashboard password; never commit it) |
-| `HM_OPEN` | `auth.open` | `false` (`1` allows running with no password) |
+| `HM_PASS` | `auth.password` | `default` (dashboard password; never commit your own) |
+| `HM_OPEN` | `auth.open` | `false` (`1` runs with no password at all) |
 | `HM_DATA_DIR` | `data.dir` | `./data` |
 | `HM_INTAKE_READERS` | `intake.readers` | `0` = one per CPU |
 | `HM_INTAKE_READ_BUFFER_BYTES` | `intake.read_buffer_bytes` | 8 MiB |

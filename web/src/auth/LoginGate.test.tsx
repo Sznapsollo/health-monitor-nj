@@ -33,6 +33,30 @@ describe('LoginGate', () => {
     expect(await screen.findByText('the dashboard')).toBeInTheDocument()
   })
 
+  it('warns, with a way out, while the password is still the default one', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({
+          required: true,
+          authenticated: true,
+          readOnly: false,
+          defaultPassword: true,
+        }),
+      })),
+    )
+    renderGate()
+    expect(await screen.findByText('the dashboard')).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent('HM_PASS')
+    expect(
+      screen.getByRole('link', { name: 'README → Changing the default password' }),
+    ).toHaveAttribute('href', expect.stringContaining('#changing-the-default-password'))
+
+    await userEvent.click(screen.getByRole('button', { name: 'Close' }))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
   it('asks for a password when the server requires one', async () => {
     vi.stubGlobal(
       'fetch',

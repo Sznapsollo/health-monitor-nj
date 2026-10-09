@@ -12,6 +12,8 @@ export interface SessionInfo {
   dashboard?: string
   /** How a wall display draws itself; only for a display. */
   display?: DisplayOptions
+  /** The password is still the one a fresh install ships with. */
+  defaultPassword?: boolean
 }
 
 /** How a wall display draws itself, beyond what it shows. */

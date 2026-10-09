@@ -247,17 +247,20 @@ func run() error {
 		Alerts: alerts, Silences: silences, Statuses: statuses, Gauges: gauges, Info: reports,
 	})
 
+	if cfg.Auth.Password == "" && !cfg.Auth.Open {
+		cfg.Auth.Password = auth.DefaultPassword
+	}
 	sessions, err := auth.Open(auth.Options{DB: db.DB(), Password: cfg.Auth.Password})
 	if err != nil {
 		return err
 	}
 	if !sessions.Enabled() {
-		if !cfg.Auth.Open {
-			return errors.New("no dashboard password is set: set HM_PASS or auth.password, " +
-				"or HM_OPEN=1 (auth.open) to run without one")
-		}
 		log.Warn("no dashboard password is set and HM_OPEN is on: every request is allowed. " +
 			"Do not let anyone else reach this server")
+	}
+	if sessions.UsesDefaultPassword() {
+		log.Warn("the dashboard password is the default one, \"" + auth.DefaultPassword + "\": " +
+			"set HM_PASS (in .env for Docker) and restart")
 	}
 	for _, platform := range registry.Platforms() {
 		set, err := rules.Load(filepath.Join(cfg.Data.PlatformsDir, platform, "rules.yaml"))

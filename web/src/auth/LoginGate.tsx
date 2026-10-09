@@ -13,6 +13,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { fetchSession, login, type SessionInfo } from '../api/session'
+import { DefaultPasswordWarning } from './DefaultPasswordWarning'
 
 /**
  * Shows the dashboard once there is a session, and a login form when the
@@ -66,7 +67,14 @@ export function LoginGate({ children }: { children: ReactNode }) {
       </Box>
     )
   }
-  if (!session.required || session.authenticated) return <>{children}</>
+  if (!session.required || session.authenticated) {
+    return (
+      <>
+        {session.defaultPassword ? <DefaultPasswordWarning /> : null}
+        {children}
+      </>
+    )
+  }
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()

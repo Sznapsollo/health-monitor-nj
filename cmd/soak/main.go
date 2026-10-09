@@ -5,6 +5,7 @@ package main
 
 import (
 	"bufio"
+	"cmp"
 	"context"
 	"encoding/json"
 	"flag"
@@ -21,6 +22,8 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+
+	"github.com/Sznapsollo/health-monitor-nj/internal/auth"
 )
 
 type options struct {
@@ -38,7 +41,7 @@ func main() {
 	flag.StringVar(&o.addr, "addr", "127.0.0.1:8082", "UDP address of the monitor")
 	flag.StringVar(&o.status, "status", "http://127.0.0.1:8081", "HTTP base URL for reading the monitor's counters back; empty to skip")
 	flag.StringVar(&o.token, "token", os.Getenv("HM_SOAK_TOKEN"), "display or login token for -status when the monitor has a password (HM_SOAK_TOKEN)")
-	flag.StringVar(&o.password, "password", os.Getenv("HM_PASS"), "the monitor's password, to log in for -status instead of a token (HM_PASS)")
+	flag.StringVar(&o.password, "password", cmp.Or(os.Getenv("HM_PASS"), auth.DefaultPassword), "the monitor's password, to log in for -status instead of a token (HM_PASS)")
 	flag.DurationVar(&o.report, "report", 10*time.Second, "how often to print what was sent and the monitor's counters")
 	flag.Parse()
 
