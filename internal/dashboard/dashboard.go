@@ -117,14 +117,14 @@ func Overview(platform string, defs []*signal.Definition) (Dashboard, bool) {
 	if len(defs) == 0 {
 		return Dashboard{}, false
 	}
-	var gauges, charts []Panel
+	var main, charts []Panel
 	var packets *signal.Definition
 	for _, def := range defs {
 		switch {
 		case def.Name == signal.PacketsSignal:
 			packets = def
 		case def.Kind == signal.KindGauge:
-			gauges = append(gauges, Panel{Type: PanelGauge, Signal: def.Name, Height: 200})
+			main = append(main, Panel{Type: PanelGauge, Signal: def.Name, Height: 200})
 		case def.Kind == signal.KindTimeseries:
 			charts = append(charts, Panel{Type: PanelChart, Signal: def.Name, Height: 260})
 		}
@@ -136,8 +136,9 @@ func Overview(platform string, defs []*signal.Definition) (Dashboard, bool) {
 		{Type: PanelAlerts, Levels: []string{"ERROR", "WARN"}, Limit: 20},
 		{Type: PanelStatus},
 	}}
+	main = append(main, charts...)
 	columns := []Column{side}
-	if main := append(gauges, charts...); len(main) > 0 {
+	if len(main) > 0 {
 		columns = []Column{{Width: 2, Panels: main}, side}
 	}
 	return Dashboard{

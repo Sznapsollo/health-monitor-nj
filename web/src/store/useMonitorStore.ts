@@ -300,7 +300,7 @@ export const useMonitorStore = create<MonitorState>((set, get) => ({
         paired.platform ||
         new URLSearchParams(globalThis.location?.search ?? '').get('platform') ||
         get().platform ||
-        remembered?.platform ||
+        (remembered && platforms.includes(remembered.platform) ? remembered.platform : '') ||
         platforms[0] ||
         ''
 
@@ -308,7 +308,10 @@ export const useMonitorStore = create<MonitorState>((set, get) => ({
       const criteria: Record<string, Criteria> = {}
       for (const spec of signals) {
         if (spec.kind !== 'timeseries') continue
-        const saved = remembered?.criteria.find((c) => c.signal === spec.name)
+        const saved =
+          remembered?.platform === platform
+            ? remembered.criteria.find((c) => c.signal === spec.name)
+            : undefined
         criteria[spec.name] = saved ?? defaultCriteria(spec)
       }
       let activeView: string | null = rememberedView
@@ -396,6 +399,8 @@ export const useMonitorStore = create<MonitorState>((set, get) => ({
     const names = pickable(catalogue, platform)
     const visible = (loadVisible(platform) ?? []).filter((n) => names.includes(n))
     set({ platform, criteria, visible, views: {}, dashboards: [], dashboardId: null })
+    saveActive(platform, Object.values(criteria))
+    replaceSearch(new URLSearchParams({ platform }).toString())
     socket?.send({ t: 'criteria', platform, criteria: wanted(get()) })
     void fetchDashboards(platform)
       .then((dashboards) => {
