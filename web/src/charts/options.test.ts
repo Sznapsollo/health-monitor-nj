@@ -4,6 +4,7 @@ import { tokens } from '../theme/tokens'
 import type { Group, Point } from '../ws/types'
 import {
   allMinutes,
+  axisTooltip,
   groupSeries,
   minuteSeriesOption,
   showMainOf,
@@ -92,6 +93,32 @@ describe('minuteSeriesOption', () => {
       spec([{ name: 'ms', points: [point(1, 1, 33.33333)], value: 'avgMs', style: 'line' }]),
     )
     expect((option.series as { data: number[] }[])[0].data).toEqual([33.3])
+  })
+})
+
+describe('axisTooltip', () => {
+  const row = (seriesName: string, value: number | null) => ({
+    axisValueLabel: '10:15',
+    marker: '<span class="m"></span>',
+    seriesName,
+    value,
+  })
+
+  it('lists only the series the hovered minute holds, largest first', () => {
+    const html = axisTooltip([
+      row('acme', 3),
+      row('globex', null),
+      row('initech', 9),
+      row('none', 0),
+    ])
+    expect(html).toContain('10:15')
+    expect(html).not.toContain('globex')
+    expect(html).not.toContain('none')
+    expect(html.indexOf('initech')).toBeLessThan(html.indexOf('acme'))
+  })
+
+  it('does not let a name be read as markup', () => {
+    expect(axisTooltip([row('<b>x</b>', 1)])).toContain('&lt;b&gt;x&lt;/b&gt;')
   })
 })
 

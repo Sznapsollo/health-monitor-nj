@@ -45,7 +45,7 @@ export function minuteSeriesOption(spec: ChartSpec): EChartsOption {
     grid: { left: 8, right: 8, top: spec.showLegend ? 32 : 12, bottom: 24, containLabel: true },
     tooltip: {
       trigger: 'axis',
-      order: 'valueDesc',
+      formatter: axisTooltip,
       appendTo: 'body',
       backgroundColor: theme.tooltip.backgroundColor,
       borderColor: theme.tooltip.borderColor,
@@ -105,6 +105,41 @@ function toSeries(s: SeriesSpec, minutes: number[], hasSecondary: boolean) {
     default:
       return { ...base, type: 'bar' as const }
   }
+}
+
+interface TooltipRow {
+  axisValueLabel?: string
+  marker?: unknown
+  seriesName?: string
+  value?: unknown
+}
+
+/**
+ * Only what the hovered minute holds, largest first: a series with nothing in
+ * that minute stays out, however much it had in the others.
+ */
+export function axisTooltip(params: unknown): string {
+  const rows = (Array.isArray(params) ? params : [params]) as TooltipRow[]
+  const held = rows
+    .filter(
+      (r): r is TooltipRow & { value: number } => typeof r.value === 'number' && r.value !== 0,
+    )
+    .sort((a, b) => b.value - a.value)
+  const head = `<div>${escapeHtml(rows[0]?.axisValueLabel ?? '')}</div>`
+  const lines = held.map(
+    (r) =>
+      `<div>${typeof r.marker === 'string' ? r.marker : ''}${escapeHtml(r.seriesName ?? '')}` +
+      `<span style="float:right;margin-left:16px;font-weight:600">${r.value.toLocaleString()}</span></div>`,
+  )
+  return head + lines.join('')
+}
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
 }
 
 /** The union of every series' minutes, ascending, so lines share an axis. */
