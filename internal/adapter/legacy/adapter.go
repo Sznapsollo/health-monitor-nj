@@ -122,6 +122,7 @@ type v0 struct {
 	AccountName   string             `json:"accountName"`
 	IPAddress     string             `json:"ipAddress"`
 	URL           string             `json:"url"`
+	HTTPStatus    float64            `json:"httpStatus"`
 	GroupKey      string             `json:"groupKey"`
 	Origin        string             `json:"origin"`
 
@@ -380,6 +381,19 @@ func FlatFields(raw []byte) (map[string]string, map[string]float64) {
 func dailyLogOf(header protocol.Header, p v0) protocol.Packet {
 	logHeader := header
 	logHeader.T = protocol.TypeLog
+	data := map[string]any{
+		"account":       p.Account,
+		"accountName":   p.AccountName,
+		"user":          p.User,
+		"url":           p.URL,
+		"ipAddress":     p.IPAddress,
+		"serverName":    p.ServerName,
+		"port":          p.Port,
+		"executionTime": p.ExecutionTime,
+	}
+	if p.HTTPStatus > 0 {
+		data["httpStatus"] = p.HTTPStatus
+	}
 	return protocol.Packet{
 		Header: logHeader,
 		Log: &protocol.Log{
@@ -387,16 +401,7 @@ func dailyLogOf(header protocol.Header, p v0) protocol.Packet {
 			Signal: SignalDailyLogs,
 			Key:    p.Account,
 			Level:  level(p.Level),
-			Data: map[string]any{
-				"account":       p.Account,
-				"accountName":   p.AccountName,
-				"user":          p.User,
-				"url":           p.URL,
-				"ipAddress":     p.IPAddress,
-				"serverName":    p.ServerName,
-				"port":          p.Port,
-				"executionTime": p.ExecutionTime,
-			},
+			Data:   data,
 		},
 	}
 }
@@ -470,7 +475,7 @@ var known = map[string]bool{
 	"type": true, "start": true, "executionTime": true, "message": true,
 	"level": true, "serverName": true, "port": true, "user": true,
 	"account": true, "accountName": true, "ipAddress": true, "url": true,
-	"groupKey": true, "origin": true, "jobName": true, "itemsCount": true,
+	"httpStatus": true, "groupKey": true, "origin": true, "jobName": true, "itemsCount": true,
 	"logPrefix": true, "startDate": true, "branch": true, "build": true,
 	"serverConfig": true,
 }

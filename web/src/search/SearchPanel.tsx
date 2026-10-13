@@ -333,7 +333,15 @@ function Cell({ id, row, when }: { id: string; row: LogRow; when: string }) {
 /** One line of the row's own fields, so the table is readable without opening it. */
 function summarise(row: LogRow): string {
   const payload = row.payload ?? {}
-  const interesting = ['subject', 'to', 'url', 'emailType', 'executionTime', 'message']
+  const interesting = [
+    'subject',
+    'to',
+    'url',
+    'httpStatus',
+    'emailType',
+    'executionTime',
+    'message',
+  ]
   const parts: string[] = []
   for (const key of interesting) {
     const value = payload[key]

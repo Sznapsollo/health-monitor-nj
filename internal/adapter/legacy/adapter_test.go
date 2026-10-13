@@ -300,6 +300,27 @@ func TestDailyLogsAreOptional(t *testing.T) {
 	}
 }
 
+func TestDailyLogCarriesHTTPStatusWhenSent(t *testing.T) {
+	on := legacy.NewWithOptions(legacy.Options{DailyLogs: true})
+
+	got, err := on.Adapt([]byte(fixtureRequest))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := got[1].Log.Data["httpStatus"]; ok {
+		t.Errorf("httpStatus = %v, want absent for a sender that does not send it", got[1].Log.Data["httpStatus"])
+	}
+
+	withStatus := strings.Replace(fixtureRequest, `"groupKey":""`, `"groupKey":"","httpStatus":403`, 1)
+	got, err = on.Adapt([]byte(withStatus))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got[1].Log.Data["httpStatus"] != 403.0 {
+		t.Errorf("httpStatus = %v", got[1].Log.Data["httpStatus"])
+	}
+}
+
 // The shapes below are read straight from the old server
 // (Server.groovy:2379-2409), which is the only specification these packets
 // have.
