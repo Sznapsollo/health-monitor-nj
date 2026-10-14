@@ -1940,7 +1940,9 @@ by **sender** (its `serverName` / `source`; `unknown` without one) and
 `configServerListStatus`…) or kind and signal in v1 (`metric:checkout`,
 `status:servers`). A v0 request counts once, even though it also becomes a
 `dailyLogs` row. Chart it like any other signal, grouped by sender or type,
-to see when a server went quiet or started flooding. It is kept per minute for
+to see when a server went quiet or started flooding. Sender × type is always
+kept, so a chart of senders split by type has history from before it was
+opened. It is kept per minute for
 a day, then per hour, for 60 days: a few MB. The Status tab shows each
 server's last complete minute of it. Packets naming a platform the monitor
 does not know are not counted.

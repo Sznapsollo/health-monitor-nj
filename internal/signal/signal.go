@@ -286,14 +286,16 @@ func (d Definition) hasDim(dim string) bool {
 const PacketsSignal = "packets"
 
 // PacketsDefinition is the built-in packets signal of one platform: counts
-// only, per sender and type, a day per minute and then per hour, for 60 days.
+// only, per sender and type and the two together, a day per minute and then
+// per hour, for 60 days.
 func PacketsDefinition(platform string) *Definition {
 	d := &Definition{
-		Platform: platform,
-		Name:     PacketsSignal,
-		Kind:     KindTimeseries,
-		Dims:     []string{"sender", "type"},
-		Values:   Values{Count: "count"},
+		Platform:  platform,
+		Name:      PacketsSignal,
+		Kind:      KindTimeseries,
+		Dims:      []string{"sender", "type"},
+		Values:    Values{Count: "count"},
+		KeepPairs: [][2]string{{"sender", "type"}},
 		Retention: Retention{
 			HotDetailMinutes: DefaultHotDetailMinutes,
 			HotTotalsMinutes: DefaultHotTotalsMinutes,

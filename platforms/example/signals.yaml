@@ -39,7 +39,7 @@ signals:
       detail_days: 3             # per-value rows per minute; after that, per hour
     max_keys: 10000              # values per dimension per minute; more go to "other"
     keep_pairs:                  # stored always, so these splits have history
-      - [port, account]
+      - [serverName, account]
       - [serverName, url]
     display:
       name: Requests
